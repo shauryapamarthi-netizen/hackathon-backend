@@ -1,14 +1,42 @@
-# Air Drum — audio only
+# Air Drum — Self-Improving Practice Coach
 
-Hand tracking, colored-tip tracking, hit detection, sensitivity controls, overlays and automatic tracking model downloads have been removed. Camera preview and drum arrangement remain for your teammate to use. No WebSocket connection is created by this version.
+Hand-track drums in the air, get scored on rhythm and pitch, and let an adaptive backend pick what you should practice next based on what's actually helping you improve. Built for a Penn State hackathon.
 
-## Run
+## What's in this repo
 
-Run `node start.cjs` from this folder, then open http://127.0.0.1:4173/studio.html. For the Express API, use `npm install` then `npm start`.
+- **`server.js` + `models/` + `lib/` + `config/`** — Express/MongoDB backend. Tracks exercises, attempts, and per-skill history, picks the next exercise based on each user's weakest skill, and uses the Claude API to generate feedback and power an in-app drum-teaching chatbot.
+- **`dist/`** — The Air Drum frontend: camera preview and drum arrangement (`app.js`), synthesized drum audio (`drum-audio.js`), 3D drum visuals (`drum-visuals.js`), metronome/recording/practice UI (`performance.js`), a camera-angle calibration helper (`calibration.js`), and the layer that connects the UI to the backend — reporting practice results, loading the next suggested exercise, and running the chat tutor (`coach.js`).
+- **`public/`** — a minimal microphone-based pitch/rhythm test page for other instruments, served at `/simple`.
 
-Click Enable sound. Test drum buttons or use A/S/D/F/Space when focus is outside form controls and buttons. In Play mode, the drum zones are clickable too. Volume, animations, metronome, practice timing summary, recording and JSON export remain. Samples are synthesized locally; no API key needed.
+## Run it
 
-## Connect your teammate's tracker
+```
+npm install
+npm start
+```
+
+Then open `http://localhost:3000` for the full Air Drum studio (served from `dist/`), or `http://localhost:3000/simple` for the plain pitch-practice test page.
+
+You'll need a `.env` file with:
+
+```
+PORT=3000
+MONGODB_URI=<your MongoDB Atlas connection string>
+ANTHROPIC_API_KEY=<optional, enables real AI feedback and chat coaching>
+```
+
+Without `ANTHROPIC_API_KEY`, feedback and chat still work using built-in fallback responses — nothing crashes, you just don't get Claude-generated text.
+
+For a standalone static preview of just the frontend (no backend, no database): `npm run demo`, then open `http://127.0.0.1:4173/studio.html`.
+
+## How the adaptive loop works
+
+1. The frontend asks `/next-exercise?userId=...` for what to practice. The backend looks at the user's skill history, finds their weakest skill, and returns the exercise targeting that skill with the best track record of actually improving players (`avgImprovement`) system-wide.
+2. The user plays along (drum hits via hand tracking or keyboard, or sung/played pitch via microphone on the `/simple` page).
+3. The frontend posts the result to `/attempts`. The backend scores improvement versus the user's last attempt on that skill, updates that exercise's system-wide improvement stats, and generates feedback via Claude.
+4. The next `/next-exercise` call picks up the user's updated skill history, closing the loop.
+
+## Connect your teammate's hand tracker
 
 After the user clicks Enable sound and selects Play, call once per detected hit:
 
@@ -16,7 +44,7 @@ After the user clicks Enable sound and selects Play, call once per detected hit:
 window.airDrumStudio.hit('snare', 0.85);
 ```
 
-Drum IDs: `snare`, `hi-hat`, `mid-tom`, `crash`, `kick`. Velocity is a finite number from 0 to 1. Returns true when played; false if audio is not ready, Arrange mode is active, or input is invalid. The function triggers audio, visual feedback and recording together.
+Drum IDs: `snare`, `hi-hat`, `mid-tom`, `crash`, `kick`. Velocity is a finite number from 0 to 1. Returns true when played; false if audio is not ready, Arrange mode is active, or input is invalid.
 
 Alternatively:
 
@@ -26,10 +54,8 @@ window.dispatchEvent(new CustomEvent('drum-hit', {
 }));
 ```
 
-`window.airDrumStudio.getLayout()` provides normalized mirrored camera-image drum coordinates and dimensions; `getMode()` gives arrange/play. The existing `#video` element provides the camera preview. Your teammate owns tracking and strike detection and can call the hit function from their WebSocket handler or browser tracker. No gold strike-line rule is imposed by this audio code.
+`window.airDrumStudio.getLayout()` provides normalized mirrored camera-image drum coordinates and dimensions; `getMode()` gives arrange/play. The existing `#video` element provides the camera preview.
 
-## Upload this revision
+## Tests
 
-Replace the files at their existing repository paths, especially `dist/performance.js`, `dist/performance.css`, `dist/app.js` and `dist/studio.html`. `dist/strike-detector.js` and `tests/strike-detector.cjs` are intentionally inactive placeholders so a browser upload also neutralizes the prior files. They can be deleted later.
-
-Run `npm test` for the audio buffer/overlap check. This revision has been syntax checked and audio logic tested; physical audio output and your teammate's tracker need testing on the demo machine. The live site is unchanged until you commit these files and Vercel redeploys.
+`npm test` runs the audio buffer/overlap checks in `tests/`.

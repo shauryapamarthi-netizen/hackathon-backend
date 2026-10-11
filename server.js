@@ -8,7 +8,13 @@ const Exercise = require('./models/Exercise');
 const Attempt = require('./models/Attempt');
 const SkillHistory = require('./models/SkillHistory');
 const { pickNextExercise } = require('./lib/adaptive');
-const { generateFeedback } = require('./lib/claude');
+const { generateFeedback, generateChatReply } = require('./lib/claude');
+
+function clampScore(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(100, n));
+}
 
 const app = express();
 app.use(cors());
@@ -134,10 +140,12 @@ async function start() {
   });
 
   app.post('/attempts', async (req, res) => {
-    const { userId, exerciseId, pitchAccuracy, rhythmAccuracy } = req.body;
+    const { userId, exerciseId } = req.body;
+    const pitchAccuracy = clampScore(req.body.pitchAccuracy);
+    const rhythmAccuracy = clampScore(req.body.rhythmAccuracy);
     if (!userId || !exerciseId || pitchAccuracy == null || rhythmAccuracy == null) {
       return res.status(400).json({
-        error: 'userId, exerciseId, pitchAccuracy, and rhythmAccuracy are required'
+        error: 'userId, exerciseId, and numeric pitchAccuracy/rhythmAccuracy (0-100) are required'
       });
     }
 
@@ -184,6 +192,15 @@ async function start() {
     if (req.query.userId) filter.userId = req.query.userId;
     const attempts = await Attempt.find(filter).sort({ playedAt: -1 });
     res.json(attempts);
+  });
+
+  app.post('/chat', async (req, res) => {
+    const { messages } = req.body;
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'messages array is required' });
+    }
+    const reply = await generateChatReply(messages);
+    res.json({ reply });
   });
 
   const PORT = process.env.PORT || 3000;
