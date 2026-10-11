@@ -1,0 +1,123 @@
+.workspace{grid-template-columns:minmax(0,1fr) 300px}
+.stage-column{min-width:0}
+.stage-column>*+*{margin-top:24px}
+.stage-column .camera-panel{align-self:stretch;width:100%}
+.stage-column aside{width:auto}
+
+.coach-banner{display:none;background:#1d251f;border:1px solid #475447;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.6;color:#dce6d7}
+.coach-banner.visible{display:block}
+.coach-banner strong{color:#ecc58f}
+.coach-banner .coach-feedback{margin-top:8px;padding-top:8px;border-top:1px solid #343e35;color:#c9d6c4}
+
+.calibration-overlay{position:absolute;inset:0;background:#0d1210e6;display:flex;align-items:center;justify-content:center;z-index:30;padding:20px}
+.calibration-overlay[hidden]{display:none}
+.calibration-box{max-width:320px;text-align:center}
+.calibration-box h3{font-family:Manrope,sans-serif;font-size:18px;font-weight:500;margin:0 0 10px;color:#ecece6}
+.calibration-box p{font-size:12px;color:#aab6a6;margin:0 0 16px}
+.calibration-meter{margin-bottom:14px;text-align:left}
+.calibration-meter span{font-size:10px;letter-spacing:1px;color:#8c9a90;text-transform:uppercase}
+.meter-track{height:6px;background:#2a302c;border-radius:3px;margin-top:6px;overflow:hidden}
+.meter-fill{height:100%;width:0%;background:#dbbd88;transition:width .2s ease}
+.meter-fill.good{background:#9ecb8a}
+.meter-fill.bad{background:#df8f77}
+#calibrationContinue{margin-top:6px;width:100%}
+
+.chat-panel{border:1px solid #343a37;border-radius:14px;background:#191e1c;display:flex;flex-direction:column;padding:20px;min-height:460px;align-self:start}
+.chat-panel h2{font-family:Manrope,sans-serif;font-size:21px;font-weight:500;margin:6px 0 10px;letter-spacing:-.5px}
+.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin:10px 0;max-height:420px;min-height:160px}
+.chat-msg{font-size:12px;line-height:1.6;padding:10px 12px;border-radius:8px;max-width:92%}
+.chat-msg.user{align-self:flex-end;background:#2a2e3d;color:#eee}
+.chat-msg.assistant{align-self:flex-start;background:#20261f;color:#d7e0d2;border:1px solid #343e35}
+.chat-form{display:flex;gap:8px}
+.chat-form input{flex:1;padding:10px;border-radius:6px;border:1px solid #475447;background:#111a15;color:#eee;font:inherit;font-size:12px}
+.chat-form button{padding:10px 14px;border-radius:6px;border:0;background:#dbbd88;color:#252a21;font-weight:700;font-size:12px}
+.chat-status{font-size:10px;color:#8c9a90;margin-top:8px;min-height:1.4em}
+
+@media(max-width:1100px){.workspace{grid-template-columns:1fr}.chat-panel{min-height:300px}}
+
+html,body{height:100%}
+main{max-width:100%;box-sizing:border-box;padding:32px clamp(16px,3vw,56px) 40px}
+.workspace{grid-template-columns:minmax(0,1fr) 360px}
+.stage{aspect-ratio:16/9}
+@media(min-width:1400px){.stage{aspect-ratio:21/9}}
+h1{font-size:clamp(34px,4.2vw,58px)}
+.chat-panel{min-height:620px}
+.chat-messages{max-height:none}
+
+#fullscreenBtn{background:#2a2e3d;color:#e8c185;border:1px solid #475447;border-radius:6px;padding:8px 14px;margin-right:4px}
+#fullscreenBtn:hover{background:#343a49}
+html:fullscreen,html:-webkit-full-screen{background:#111414}
+html:fullscreen body,html:-webkit-full-screen body{overflow-y:auto;height:auto;min-height:100%}
+html:fullscreen main,html:-webkit-full-screen main{min-height:100vh}
+
+.getting-started{background:#1d251f;border:1px solid #475447;border-radius:10px;padding:16px 18px;margin-bottom:18px}
+.getting-started h3{margin:0 0 12px;font-size:11px;letter-spacing:1.8px;color:#ecc58f;font-weight:600}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+.step{display:flex;align-items:center;gap:10px;font-size:12px;color:#8c9a90;transition:color .2s ease}
+.step-num{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:#2a302c;color:#8c9a90;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:background .2s ease,color .2s ease,box-shadow .2s ease}
+.step.active{color:#ecece6}
+.step.active .step-num{background:#dbbd88;color:#252a21;box-shadow:0 0 0 3px #dbbd8833}
+.step.done{color:#9ecb8a}
+.step.done .step-num{background:#9ecb8a;color:#132015}
+.step.done .step-num .num-digit{display:none}
+.step.done .step-num .num-check{display:inline}
+.step-num .num-check{display:none}
+
+/* Button polish */
+.primary,.reset,.text-button,.test-pads button,.preset-apply,.chat-form button{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+.primary:hover,.preset-apply:hover,.chat-form button:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 4px 14px #0004}
+.reset:hover,.text-button:hover,.test-pads button:hover{transform:translateY(-1px);border-color:#596149}
+.primary:active,.reset:active,.test-pads button:active,.preset-apply:active,.chat-form button:active{transform:translateY(0)}
+.modes button{transition:background .15s ease,color .15s ease}
+.zone{transition:box-shadow .15s ease}
+
+/* Vivid color system: layered aurora background, each panel gets its own hue */
+body{
+  background:
+    radial-gradient(1000px 560px at 10% -8%, #ff7a5938 0%, transparent 62%),
+    radial-gradient(1000px 620px at 92% 6%, #35d0c042 0%, transparent 60%),
+    radial-gradient(1300px 820px at 50% 108%, #8b5cf638 0%, transparent 62%),
+    linear-gradient(180deg,#160c2c 0%,#100a22 55%,#0a0716 100%) fixed;
+  background-color:#0a0716;
+}
+header{background:linear-gradient(90deg,#1a1230cc,#150c28cc);backdrop-filter:blur(6px);border-bottom:1px solid #3a2a5c}
+.eyebrow{color:#ff9d7a}
+h1{background:linear-gradient(100deg,#ffb199,#ff8fc2 45%,#a992ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.camera-panel,.chat-panel,.stage-column aside,.coach-banner,.getting-started{border-radius:18px;background-color:#170f2a}
+.panel-top,.camera-bottom{border-radius:inherit}
+
+.camera-panel{border:1px solid #2f6e6a66;box-shadow:0 18px 46px -20px #35d0c04d,0 2px 0 #ffffff08 inset}
+.stage{background:radial-gradient(ellipse at 50% 42%,#1d3833 0%,#15241f 45%,#0e1613 100%)}
+
+.stage-column aside{border:1px solid #5a3fa155;box-shadow:0 18px 46px -22px #8b5cf64d}
+
+.getting-started{background:linear-gradient(160deg,#241a42,#1a1332);border:1px solid #6d4fc455;box-shadow:0 14px 34px -18px #8b5cf655}
+.getting-started h3{color:#c9b6ff}
+.step.active{color:#f3eeff}
+.step.active .step-num{background:linear-gradient(135deg,#a992ff,#35d0c0);color:#120a26;box-shadow:0 0 0 4px #a992ff33}
+.step.done .step-num{background:linear-gradient(135deg,#7adfc0,#35d0c0);color:#0c1f1b}
+
+.coach-banner{background:linear-gradient(160deg,#3a1f2e,#2a1626);border:1px solid #d1527a55;box-shadow:0 14px 34px -18px #ff6f9140}
+.coach-banner strong{color:#ff9fc0}
+.coach-banner .coach-feedback{border-top-color:#d1527a44;color:#f2d9e3}
+
+.chat-panel{background:linear-gradient(165deg,#1c1333,#160f28);border:1px solid #4f3fa166;box-shadow:0 18px 46px -20px #a992ff4d}
+.chat-panel h2{background:linear-gradient(100deg,#ff9fc0,#a992ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.chat-messages{scrollbar-color:#6d4fc4 transparent}
+.chat-msg.assistant{background:#241a3d;border:1px solid #4f3fa166;color:#e9e3ff}
+.chat-msg.user{background:linear-gradient(135deg,#ff6f9140,#a992ff40);border:1px solid #ff9fc044;color:#fff0f6}
+.chat-form input{background:#140d26;border-color:#4f3fa166}
+.chat-form input:focus{outline:2px solid #a992ff55;outline-offset:1px}
+.chat-form button{background:linear-gradient(135deg,#35d0c0,#a992ff);color:#0c1326;box-shadow:0 3px 16px -4px #35d0c066}
+
+.primary{background:linear-gradient(135deg,#ff9d7a,#ff6fa8);color:#2a0b16;box-shadow:0 3px 16px -4px #ff6fa866}
+#fullscreenBtn{background:linear-gradient(135deg,#4f3fa1,#2f6e6a);color:#f3eeff;border-color:#6d4fc455}
+#fullscreenBtn:hover{filter:brightness(1.15)}
+
+.zone{transition:box-shadow .15s ease,border-color .15s ease}
+.zone:hover,.zone:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--tone) 55%,transparent),0 0 26px 2px color-mix(in srgb,var(--tone) 45%,transparent)}
+.modes .selected{background:linear-gradient(135deg,#ff9d7a,#ff6fa8);color:#2a0b16}
+.test-pads button{background:linear-gradient(160deg,#241a3d,#1c1333);border-color:#4f3fa166;color:#e4c9ff}
+.reset{border-color:#4f3fa166;color:#cdb8ff}
+
