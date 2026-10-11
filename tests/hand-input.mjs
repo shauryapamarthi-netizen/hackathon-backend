@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+const Detector = createRequire(import.meta.url)('../dist/strike-detector.js');
 
 async function moduleFrom(name) {
   const source = await readFile(new URL(`../dist/${name}.js`, import.meta.url), 'utf8');
@@ -25,18 +27,19 @@ function ready() {
   return input;
 }
 
-test('setup cannot strike; selected hands render five points and strike once per hand', () => {
+test('setup cannot strike; selected hands expose all five named points for contact detection', () => {
   const input = new HandInput(new HandSession(), getHandPoints);
   input.reset(0);
   assert.deepEqual(input.update(result(), 0).strikePoints, []);
   const frame = ready().update(result(), 820);
   assert.equal(frame.overlayPoints.length, 10);
-  assert.equal(frame.strikePoints.length, 2);
+  assert.equal(frame.strikePoints.length, 10);
   assert.equal(frame.strikePoints[0].x, 0.8);
-  assert.equal(frame.strikePoints[0].id, 'hand-1');
+  assert.equal(frame.strikePoints[0].handId, 'hand-1');
+  assert.equal(new Set(frame.strikePoints.map(point => point.id)).size, 10);
 });
 
-test('partial hand stays selected without synthesizing an absent pointer strike', () => {
+test('partial hand exposes its remaining pinky for contact detection', () => {
   const input = ready();
   const partial = result();
   partial.landmarks = [partial.landmarks[0].map(() => ({ x: -2, y: -2, z: 0 }))];
@@ -44,7 +47,8 @@ test('partial hand stays selected without synthesizing an absent pointer strike'
   const frame = input.update(partial, 820);
   assert.equal(frame.hands.length, 1);
   assert.equal(frame.overlayPoints.length, 1);
-  assert.deepEqual(frame.strikePoints, []);
+  assert.equal(frame.strikePoints.length, 1);
+  assert.equal(frame.strikePoints[0].id, 'hand-1:pinky');
 });
 
 test('ten seconds without a match times out; one matched hand resets the timer', () => {
@@ -55,4 +59,18 @@ test('ten seconds without a match times out; one matched hand resets the timer',
   input.reset(20000);
   assert.equal(input.update(empty, 29999).timedOut, false);
   assert.equal(input.update(empty, 30000).timedOut, true);
+});
+
+test('selected hand points reach the drum detector as one contact, not five hits', () => {
+  const input = ready();
+  const detector = new Detector();
+  const zones = [{ id: 'snare', x: 0.7, y: 0.4, width: 0.12, height: 0.12 }];
+  detector.update(input.update(result(), 820).strikePoints, zones, 820);
+  const entering = result();
+  entering.landmarks[0].forEach(point => { point.x = 0.26; });
+  const hits = detector.update(input.update(entering, 870).strikePoints, zones, 870);
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].drum, 'snare');
+  assert.equal(hits[0].source, 'hand-1');
+  assert.equal(detector.update(input.update(entering, 920).strikePoints, zones, 920).length, 0);
 });

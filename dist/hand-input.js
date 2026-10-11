@@ -27,10 +27,9 @@ export class HandInput {
       color: selection.state === 'calibrating' ? '#f4d58b' : hand.id === 'hand-1' ? '#99f0c6' : '#a6b5ff',
       radius: point.name === 'palm' ? 8 : 5
     })));
-    const strikePoints = selection.hands.flatMap(hand => {
-      const pointer = this.getPoints(hand.screenLandmarks).find(point => point.name === 'pointer');
-      return pointer ? [{ id: hand.id, x: pointer.x, y: pointer.y }] : [];
-    });
+    const strikePoints = selection.hands.flatMap(hand => this.getPoints(hand.screenLandmarks).map(point => ({
+      id: `${hand.id}:${point.name}`, handId: hand.id, x: point.x, y: point.y
+    })));
     return { ...selection, timestampMs: now, overlayPoints, strikePoints, timedOut: now - this.lastSeen >= 10000 };
   }
 }

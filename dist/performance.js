@@ -6,9 +6,9 @@ const detector=new window.StrikeDetector();let running=false,landmarker,loading=
 const panel=document.createElement('section');panel.className='performance';panel.innerHTML=`
 <h3>PLAY YOUR SPACE</h3><button id="soundOn" class="primary">Enable sound</button>
 <label>Input<select id="inputMode"><option value="hands">Hands · five-point tracking</option><option value="markers">Sticks · pink + cyan tips</option><option value="backend">Backend · hit events</option></select></label>
-<p id="inputHelp">Show both open hands briefly to select them. Five dots follow each hand; index fingertips play the drums. Any one matching point can keep a hand selected.</p>
+<p id="inputHelp">Show both open hands briefly to select them. Any of the five dots can play a drum by entering its glowing hit area. Move clear of the area before touching it again.</p>
 <button id="trackToggle" class="reset">Start tracking</button><button id="setupHands" class="reset" disabled>Set up hands again</button><div id="trackingStatus" role="status">Sound and tracking are off.</div>
-<label>Sensitivity <input id="sensitivity" type="range" min="10" max="100" value="65"></label>
+<label>Hit area <output id="radiusValue">125%</output><input id="sensitivity" type="range" min="100" max="180" value="125"></label>
 <label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
 <div id="backendSettings" hidden><label>WebSocket URL<input id="wsUrl" placeholder="wss://your-server/ws"></label><p>Connects to an existing backend that sends drum_hit events. No camera frames are uploaded by this client.</p></div>
 <div class="test-pads"><button data-hit="hi-hat">A · Hi-hat</button><button data-hit="snare">S · Snare</button><button data-hit="mid-tom">D · Tom</button><button data-hit="crash">F · Crash</button><button data-hit="kick">Space · Kick</button></div>
@@ -29,12 +29,12 @@ function hit(id,velocity=1,source='manual'){
 async function enableSound(){await audio.init();audio.volume(+$('volume').value/100);$('soundOn').textContent='Sound enabled ✓';}
 $('soundOn').onclick=()=>enableSound().catch(e=>status('Audio could not start: '+e.message));
 $('volume').oninput=()=>audio.volume(+$('volume').value/100);
-$('sensitivity').oninput=()=>{detector.threshold=(110-+$('sensitivity').value)/100;};$('sensitivity').oninput();
+$('sensitivity').oninput=()=>{detector.radiusScale=+$('sensitivity').value/100;$('radiusValue').value=$('sensitivity').value+'%';detector.reset();};$('sensitivity').oninput();
 for(const b of panel.querySelectorAll('[data-hit]'))b.onclick=async()=>{try{await enableSound();hit(b.dataset.hit)}catch(e){status(e.message)}};
 for(const z of document.querySelectorAll('.zone'))z.addEventListener('click',async()=>{if(studio.getMode()==='play'){try{await enableSound();hit(z.id)}catch(e){status(e.message)}}});
 window.addEventListener('keydown',async e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;const id={KeyA:'hi-hat',KeyS:'snare',KeyD:'mid-tom',KeyF:'crash',Space:'kick'}[e.code];if(id){e.preventDefault();try{await enableSound();hit(id)}catch(err){status(err.message)}}});
 function render(points,zones){const r=$('zones').getBoundingClientRect();if(canvas.width!==Math.round(r.width)||canvas.height!==Math.round(r.height)){canvas.width=Math.round(r.width);canvas.height=Math.round(r.height);}pen.clearRect(0,0,canvas.width,canvas.height);pen.lineWidth=2;
- for(const z of zones){pen.strokeStyle='#f4d196';pen.beginPath();pen.moveTo((z.x-z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);pen.lineTo((z.x+z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);pen.stroke();}
+ for(const z of zones){pen.strokeStyle='#f4d196';pen.fillStyle='#f4d19620';pen.beginPath();pen.ellipse(z.x*canvas.width,z.y*canvas.height,z.width*canvas.width*detector.radiusScale/2,z.height*canvas.height*detector.radiusScale/2,0,0,Math.PI*2);pen.fill();pen.stroke();}
  for(const p of points){pen.fillStyle=p.color||(p.id==='cyan'?'#6affff':'#ff8bd9');pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,p.radius||8,0,Math.PI*2);pen.fill();}
 }
 // Find the largest connected color blob for each stick, rather than averaging unrelated pixels.
@@ -65,7 +65,7 @@ function frame(now){if(!running)return;const v=$('video');
  }
  const zones=studio.getLayout();render(displayed,zones);
  if(studio.getMode()==='play'){for(const h of detector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else detector.reset();
- status(selection?selection.message:points.length?`${points.length} tracked · ${studio.getMode()==='play'?'strike down through a gold line':'switch to Play when positioned'}`:'No input detected · keep colored tips visible');
+ status(selection?selection.message:points.length?`${points.length} tracked · ${studio.getMode()==='play'?'touch a glowing hit area':'switch to Play when positioned'}`:'No input detected · keep colored tips visible');
  }scheduleFrame();
  }catch(e){stop();status('Tracking stopped: '+e.message);}
 }
@@ -90,8 +90,8 @@ function backend(){const url=new URL($('wsUrl').value);if(!['ws:','wss:'].includ
 }
 $('trackToggle').onclick=async()=>{if(running){stop();status('Tracking stopped.');return}if(loading)return;loading=true;$('trackToggle').disabled=true;$('inputMode').disabled=true;
  try{await enableSound();if($('inputMode').value==='backend'){backend();running=true;}else{if(!$('video').srcObject)throw Error('Enable the camera first.');if($('inputMode').value==='hands')await loadHands();handInput.reset(performance.now());running=true;scheduleFrame();$('setupHands').disabled=$('inputMode').value!=='hands';}$('trackToggle').textContent='Stop tracking';}catch(e){stop();status(e.message+' You can still test the drum buttons.');}finally{loading=false;$('trackToggle').disabled=false;$('inputMode').disabled=false;}};
-$('inputMode').onchange=()=>{stop();$('backendSettings').hidden=$('inputMode').value!=='backend';$('inputHelp').textContent=$('inputMode').value==='markers'?'Wrap one tip in bright pink tape and the other in cyan tape. Use good light and a plain background without those colors. Markers should appear at least 5 pixels wide.':$('inputMode').value==='hands'?'Show both open hands briefly to select them. Five dots follow each hand; index fingertips play the drums. Any one matching point can keep a hand selected.':'Your backend supplies drum hits; this mode does not run camera tracking or send video.';status('Input changed. Press Start tracking.');};
-$('arrange').addEventListener('click',()=>{detector.reset()});$('play').addEventListener('click',()=>{$('stageHint').textContent='Strike down through a gold line';});
+$('inputMode').onchange=()=>{stop();$('backendSettings').hidden=$('inputMode').value!=='backend';$('inputHelp').textContent=$('inputMode').value==='markers'?'Wrap one tip in bright pink tape and the other in cyan tape. Use good light and a plain background without those colors. Markers should appear at least 5 pixels wide.':$('inputMode').value==='hands'?'Show both open hands briefly to select them. Any of the five dots can play a drum by entering its glowing hit area. Move clear of the area before touching it again.':'Your backend supplies drum hits; this mode does not run camera tracking or send video.';status('Input changed. Press Start tracking.');};
+$('arrange').addEventListener('click',()=>{detector.reset()});$('play').addEventListener('click',()=>{$('stageHint').textContent='Touch any point to a glowing hit area';});
 function stopMetro(){clearInterval(metro);metro=null;$('metro').textContent='Start metronome';}
 $('metro').onclick=async()=>{if(metro){stopMetro();return}try{await enableSound();tempo=Math.max(40,Math.min(220,Number($('bpm').value)||90));$('bpm').value=tempo;nextBeat=audio.context.currentTime+.1;beat=0;const schedule=()=>{while(nextBeat<audio.context.currentTime+.08){audio.tick(nextBeat,beat%4===0);nextBeat+=60/tempo;beat++;}};metro=setInterval(schedule,25);schedule();$('metro').textContent='Stop metronome';}catch(e){status(e.message)}};
 let practiceOrigin=0,practicePeriod=0;
