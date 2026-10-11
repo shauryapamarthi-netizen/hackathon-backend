@@ -39,6 +39,45 @@
       (feedbackText ? `<div class="coach-feedback">${feedbackText}</div>` : '');
   }
 
+  const SKILL_LABELS = {
+    pitch_accuracy: 'Accuracy',
+    rhythm_accuracy: 'Rhythm',
+    timing: 'Timing',
+    interval_accuracy: 'Spacing'
+  };
+
+  const insightsTop = document.getElementById('insightsTop');
+  const insightsSkills = document.getElementById('insightsSkills');
+
+  function renderInsightSkills(skillAverages) {
+    if (!insightsSkills || !skillAverages) return;
+    insightsSkills.innerHTML = Object.entries(SKILL_LABELS).map(([key, label]) => {
+      const value = skillAverages[key];
+      const pct = value == null ? 0 : Math.max(2, Math.min(100, value));
+      const display = value == null ? 'not tried yet' : `${value.toFixed(0)}/100`;
+      return `<div class="skill-row"><span class="skill-label">${label}</span><div class="skill-track"><div class="skill-fill" style="width:${pct}%"></div></div><span class="skill-value">${display}</span></div>`;
+    }).join('');
+  }
+
+  async function refreshInsightsTop() {
+    if (!insightsTop) return;
+    try {
+      const res = await fetch('/exercises');
+      if (!res.ok) return;
+      const exercises = await res.json();
+      const tried = exercises.filter((ex) => ex.stats && ex.stats.timesPlayed > 0);
+      if (tried.length === 0) {
+        insightsTop.textContent = 'Be the first to play — we\'ll learn which patterns help the most.';
+        return;
+      }
+      const best = tried.reduce((a, b) => (b.stats.avgImprovement > a.stats.avgImprovement ? b : a));
+      const sign = best.stats.avgImprovement >= 0 ? '+' : '';
+      insightsTop.innerHTML = `<span class="insights-trophy">🏆</span> <strong>${best.title}</strong> is helping players improve the most (${sign}${best.stats.avgImprovement.toFixed(1)} avg, across ${best.stats.timesPlayed} ${best.stats.timesPlayed === 1 ? 'play' : 'plays'})`;
+    } catch (err) {
+      console.error('Could not load insights', err);
+    }
+  }
+
   async function loadNextExercise(feedbackText) {
     try {
       const res = await fetch(`/next-exercise?userId=${userId}`);
@@ -47,6 +86,8 @@
       currentExercise = data.exercise;
       lastCoachContext = { weakestSkill: data.weakestSkill, skillAverages: data.skillAverages };
       renderBanner(data, feedbackText);
+      renderInsightSkills(data.skillAverages);
+      refreshInsightsTop();
       if (bpmInput && currentExercise.tempoBpm) {
         bpmInput.value = currentExercise.tempoBpm;
       }
