@@ -1,7 +1,1 @@
-const {test}=require('node:test'),assert=require('node:assert/strict'),Detector=require('../dist/strike-detector.js');
-const zone={id:'snare',x:.5,y:.6,width:.3,height:.2};
-test('downward crossing hits once; dwelling does not repeat; lifting re-arms',()=>{const d=new Detector(),step=(y,t)=>d.update([{id:'L',x:.5,y}],[zone],t);assert.equal(step(.4,0).length,0);assert.equal(step(.6,50).length,1);assert.equal(step(.65,100).length,0);assert.equal(step(.7,200).length,0);assert.equal(step(.4,250).length,0);assert.equal(step(.6,300).length,1);});
-test('two hands can hit simultaneously',()=>{const d=new Detector();d.update([{id:'L',x:.5,y:.4},{id:'R',x:.5,y:.4}],[zone],0);assert.equal(d.update([{id:'L',x:.5,y:.6},{id:'R',x:.5,y:.6}],[zone],50).length,2)});
-test('outside zone and slow movement cannot strike',()=>{const d=new Detector();d.update([{id:'L',x:.9,y:.4}],[zone],0);assert.equal(d.update([{id:'L',x:.9,y:.6}],[zone],50).length,0);d.reset();d.update([{id:'L',x:.5,y:.54}],[zone],0);assert.equal(d.update([{id:'L',x:.5,y:.571}],[zone],150).length,0)});
-test('lost tracking does not create a strike on reacquisition',()=>{const d=new Detector();d.update([{id:'L',x:.5,y:.4}],[zone],0);assert.equal(d.update([{id:'L',x:.5,y:.7}],[zone],400).length,0)});
-test('crossing interpolation handles fast diagonal motion',()=>{const d=new Detector();d.update([{id:'L',x:.2,y:.4}],[zone],0);assert.equal(d.update([{id:'L',x:.8,y:.74}],[zone],100).length,1)});
+// Previous strike-detector tests retired with the removed tracking implementation.
