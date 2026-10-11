@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const Detector = require('../dist/strike-detector.js');
 const zone = { id: 'snare', x: 0.5, y: 0.5, width: 0.2, height: 0.2 };
 const point = (x, y, name = 'pointer', handId = 'hand-1') => ({ id: `${handId}:${name}`, handId, x, y });
-const nodes = (x, y, handId = 'hand-1') => ['pointer'].map(name => point(x, y, name, handId));
+const nodes = (x, y, handId = 'hand-1') => ['palm'].map(name => point(x, y, name, handId));
 function detector() { const d = new Detector(); d.radiusScale = 1; return d; }
 
 test('touching the radius from any direction triggers, including slow side entry', () => {
@@ -22,10 +22,10 @@ test('five simultaneous points from one hand cause one sound per drum contact', 
   assert.equal(d.update(points(0.49), [zone], 200).length, 0);
 });
 
-test('one point is enough to play a drum', () => {
+test('one fingertip cannot play a drum', () => {
   const d = detector();
   d.update([point(0.3, 0.5, 'pinky')], [zone], 0);
-  assert.equal(d.update([point(0.5, 0.5, 'pinky')], [zone], 50).length, 1);
+  assert.equal(d.update([point(0.5, 0.5, 'pinky')], [zone], 50).length, 0);
 });
 
 test('leave the radius then reenter to play another sound', () => {
@@ -78,32 +78,32 @@ test('radius size changes both collision coverage and invalid inputs are ignored
   assert.deepEqual(d.update([point(NaN, 0.5)], [zone], 100), []);
 });
 
-test('single points from different hands trigger independently', () => {
+test('fingertips from different hands are not combined', () => {
   const d = detector();
-  const input = x => [point(x, 0.5), point(x, 0.5, 'thumb', 'hand-2')];
+  const input = x => [point(x, 0.5), point(x, 0.5, 'middle'), point(x, 0.5, 'thumb', 'hand-2')];
   d.update(input(0.3), [zone], 0);
-  assert.equal(d.update(input(0.5), [zone], 50).length, 2);
+  assert.equal(d.update(input(0.5), [zone], 50).length, 0);
 });
 
-test('a resting palm does not block a moving fingertip', () => {
+test('two resting fingertips and a third entering trigger once', () => {
   const d = detector();
-  const input = x => [point(0.5, 0.5, 'middle'), point(x, 0.5, 'thumb')];
+  const input = x => [point(0.5, 0.5, 'middle'), point(0.5, 0.5, 'pointer'), point(x, 0.5, 'thumb')];
   d.update(input(0.3), [zone], 0);
   assert.equal(d.update(input(0.5), [zone], 50).length, 1);
   assert.equal(d.update(input(0.5), [zone], 150).length, 0);
 });
 
-test('multiple swept paths produce one hit per hand in a frame', () => {
+test('two swept fingertips cannot trigger', () => {
   const d = detector();
   const names = ['middle', 'thumb'];
   d.update([0.39,-0.3].map((x,i)=>point(x,0.5,names[i])), [zone], 0);
-  assert.equal(d.update([1.39,0.7].map((x,i)=>point(x,0.5,names[i])), [zone], 50).length, 1);
+  assert.equal(d.update([1.39,0.7].map((x,i)=>point(x,0.5,names[i])), [zone], 50).length, 0);
 });
 
-test('duplicate point IDs produce only one hit', () => {
+test('duplicate fingertip IDs cannot satisfy three nodes', () => {
   const d = detector();
   d.update(Array(3).fill(point(0.3, 0.5)), [zone], 0);
-  assert.equal(d.update(Array(3).fill(point(0.5, 0.5)), [zone], 50).length, 1);
+  assert.equal(d.update(Array(3).fill(point(0.5, 0.5)), [zone], 50).length, 0);
 });
 
 test('default hit radius matches drum bounds', () => {
@@ -136,8 +136,25 @@ test('long dropout does not connect stale points into a strike', () => {
 
 test('rapid 60 ms strokes do not drop beats while another point rests inside', () => {
   const d = detector();
-  const input = x => [point(x, 0.5), point(0.5, 0.5, 'palm')];
+  const input = x => [...['pointer','middle','thumb'].map(name=>point(x,0.5,name)), point(0.5, 0.5, 'palm')];
   let hits = 0;
   for (let i = 0; i < 40; i++) hits += d.update(input(i % 2 ? 0.5 : 0.3), [zone], i * 30).length;
   assert.equal(hits, 20);
+});
+
+test('three fast finger crossings must overlap in time', () => {
+  const names = ['pointer','middle','thumb'];
+  const d = detector();
+  d.update([0.39,0.1,-0.3].map((x,i)=>point(x,0.5,names[i])), [zone], 0);
+  assert.equal(d.update([1.39,1.1,0.7].map((x,i)=>point(x,0.5,names[i])), [zone], 50).length, 0);
+  d.reset();
+  const fingers=x=>names.map(name=>point(x,0.5,name));
+  d.update(fingers(0.2),[zone],0);
+  assert.equal(d.update(fingers(0.8),[zone],50).length,1);
+});
+
+test('colored stick marker still triggers on one point', () => {
+  const d=detector();
+  d.update([{id:'pink',x:0.3,y:0.5}],[zone],0);
+  assert.equal(d.update([{id:'pink',x:0.5,y:0.5}],[zone],50).length,1);
 });

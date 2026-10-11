@@ -21,8 +21,7 @@ selected hands. Use Set up hands again to deliberately select new hands.
 
 Each hand shows palm center, pinky tip, middle-finger tip, pointer fingertip,
 and thumb tip. One matching point inside the frame can preserve selection.
-Any one tracked point entering the glowing circular or elliptical drum area
-plays it. Contacts from multiple points of one hand are combined into one
+Three distinct fingertip nodes from the same hand touching the glowing drum area together, or one palm-center node entering it, play a hit. Contacts from multiple points of one hand are combined into one
 sound per drum. Lift the striking point clear before touching it again; a resting palm does not block another fingertip. Fast segments
 that cross the area between frames also count. New points already inside do not produce phantom strikes. Gaps up to 80 ms preserve a recent observed trajectory; longer tracking losses require moving out and back in. No hits are generated while points are missing.
 
@@ -70,7 +69,7 @@ room geometry.
 1. Click **Enable sound**. Test each of the instrument buttons. A/S/D/F and Space also play hi-hat/snare/tom/crash/kick when focus is not in a form control or button.
 2. Enable the camera. Leave **Hands** selected and click **Start tracking**. The MediaPipe model downloads on first use; allow a little time. A clear failure message leaves manual drum buttons available if download or initialization fails.
 3. In Arrange mode, drag the drums to comfortable positions. Keep the fingertip cursors visible, with room above every drum.
-4. Select **Play**. Move any one tracked point into a glowing drum area, from any direction. Lift the striking finger clear before touching it again. Holding points inside does not repeatedly trigger it.
+4. Select **Play**. Move three fingertip nodes from one hand together, or one palm-center node, into a glowing drum area, from any direction. Lift the striking finger clear before touching it again. Holding points inside does not repeatedly trigger it.
 5. Increase **Hit area** if the targets feel too small. Use speakers or wired headphones when assessing latency.
 
 For sticks/pencils: select **Sticks · pink + cyan tips**. Wrap one tip in bright magenta/pink tape and the other in cyan tape (one unique color per stick). Use good lighting and a plain background without either color. The marker should appear at least five pixels wide in the small detection image. This mode detects colored blobs; it does not recognize arbitrary unmarked pencils. Position the camera so strokes visibly travel down the image. Pink and cyan cursors mark detected tips.
@@ -115,7 +114,7 @@ The client does not upload video to this endpoint, nor automatically synchronize
 npm test
 ```
 
-Automated detector checks cover contact from any direction, single-point contact and flattened ellipses, deduplication, boundary jitter, simultaneous hands, out-of-zone motion, reacquisition, radius scaling, and fast crossings. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
+Automated detector checks cover contact from any direction, palm contact, simultaneous three-fingertip contact, and flattened ellipses, deduplication, boundary jitter, simultaneous hands, out-of-zone motion, reacquisition, radius scaling, and fast crossings. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
 
 A headless Chromium smoke check verified that the studio loads its five-point tracking controls and overlay. Model execution, real camera tracking, audible output and end-to-end latency have **not** been verified here. No latency number or competition outcome is guaranteed. Before presenting, run the steps above on the actual laptop, test both hands and colored tips, and adjust placement/sensitivity. A real-camera test remains essential.
 
@@ -139,6 +138,6 @@ and hit flashes do not force a layout recalculation.
 
 The live readout shows processed tracking frames per second and mean input
 processing time, not end-to-end audio latency. Automated motion tests cover
-20 strokes spaced 60 ms apart, stationary palms, short dropouts and reversals.
+20 three-fingertip strokes spaced 60 ms apart, stationary palms, short dropouts and reversals.
 These are synthetic tests, not a claim of professional performance on a webcam.
 Actual capture rate, motion blur, inference and audio hardware still matter.

@@ -28,7 +28,7 @@ export class HandInput {
       radius: point.name === 'palm' ? 8 : 5
     })));
     const strikePoints = selection.hands.flatMap(hand => this.getPoints(hand.screenLandmarks).map(point => ({
-      id: `${hand.id}:${point.name}`, handId: hand.id, x: point.x, y: point.y
+      id: `${hand.id}:${point.name}`, handId: hand.id, name: point.name, x: point.x, y: point.y
     })));
     return { ...selection, timestampMs: now, overlayPoints, strikePoints, timedOut: now - this.lastSeen >= 10000 };
   }

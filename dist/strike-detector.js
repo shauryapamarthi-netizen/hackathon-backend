@@ -34,6 +34,7 @@
           const normalized = point => ({ x: (point.x - zone.x) / rx, y: (point.y - zone.y) / ry });
           let velocity = 0;
           let crossing = false;
+          const fingerIntervals = [];
           contact.lastSeen = time;
           for (const point of nodes) {
             const current = normalized(point);
@@ -43,7 +44,7 @@
             const near = current.x * current.x + current.y * current.y <= 1.12 ** 2;
             const held = contact.nodes.get(point.id) || false;
             contact.nodes.set(point.id, near && (held || inside));
-            if (!previous || dt > (previous?.missing ? 80 : 180) || dt <= 0 || held) continue;
+            if (!previous || dt > (previous?.missing ? 80 : 180) || dt <= 0) continue;
             const before = normalized(previous);
             const dx = current.x - before.x;
             const dy = current.y - before.y;
@@ -61,9 +62,22 @@
               exit = Math.min(1, (-b + root) / (2 * a));
               if (enter > exit) continue;
             }
-            crossing = true;
+            const name = point.name || point.id.split(':').pop();
+            if (!point.handId || name === 'palm') {
+              if (!held) crossing = true;
+            } else if (['pointer','middle','pinky','thumb'].includes(name)) {
+              fingerIntervals.push({ time: previous.time + enter * dt, delta: 1, fresh: held ? 0 : 1 });
+              fingerIntervals.push({ time: previous.time + exit * dt, delta: -1, fresh: held ? 0 : -1 });
+            }
             const speed = Math.hypot(point.x - previous.x, point.y - previous.y) * 1000 / dt;
             velocity = Math.max(velocity, Math.min(1, Math.max(0.25, speed / 2)));
+          }
+          fingerIntervals.sort((a,b)=>a.time-b.time || b.delta-a.delta);
+          let touching = 0, entering = 0;
+          for (const event of fingerIntervals) {
+            touching += event.delta;
+            entering += event.fresh;
+            if (touching >= 3 && entering > 0) crossing = true;
           }
           if (crossing && time - contact.lastHit >= 35) {
             hits.push({ drum: zone.id, velocity, source: hand });

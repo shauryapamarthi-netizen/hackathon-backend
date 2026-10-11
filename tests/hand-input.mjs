@@ -36,6 +36,8 @@ test('setup cannot strike; selected hands expose all five named points for conta
   assert.equal(frame.strikePoints.length, 10);
   assert.equal(frame.strikePoints[0].x, 0.8);
   assert.equal(frame.strikePoints[0].handId, 'hand-1');
+  assert.equal(frame.strikePoints[0].name, 'palm');
+  assert.deepEqual(frame.strikePoints.slice(0,5).map(point=>point.name), ['palm','pinky','middle','pointer','thumb']);
   assert.equal(new Set(frame.strikePoints.map(point => point.id)).size, 10);
 });
 
