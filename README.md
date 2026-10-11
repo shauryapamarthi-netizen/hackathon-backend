@@ -132,12 +132,12 @@ This integration does not deploy the website or change the exercise/attempt API.
 ### Fast playing
 
 Each point rearms independently, with one sound per hand/drum per frame and a
-35 ms repeat guard. Fast hand reversals can match the last observed position
+100 ms repeat guard shared by palm and fingertip hits from the same hand on the same drum. A blocked contact is not queued: lift clear and make a fresh contact. Fast hand reversals can match the last observed position
 as well as the predicted position. Sound is scheduled before overlay drawing
 and hit flashes do not force a layout recalculation.
 
 The live readout shows processed tracking frames per second and mean input
 processing time, not end-to-end audio latency. Automated motion tests cover
-20 three-fingertip strokes spaced 60 ms apart, stationary palms, short dropouts and reversals.
+20 three-fingertip strokes spaced 120 ms apart, stationary palms, short dropouts and reversals.
 These are synthetic tests, not a claim of professional performance on a webcam.
 Actual capture rate, motion blur, inference and audio hardware still matter.

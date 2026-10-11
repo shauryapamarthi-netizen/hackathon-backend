@@ -134,11 +134,11 @@ test('long dropout does not connect stale points into a strike', () => {
   assert.equal(d.update(nodes(0.5, 0.5), [zone], 200).length, 0);
 });
 
-test('rapid 60 ms strokes do not drop beats while another point rests inside', () => {
+test('deliberate 120 ms strokes do not drop beats while another point rests inside', () => {
   const d = detector();
   const input = x => [...['pointer','middle','thumb'].map(name=>point(x,0.5,name)), point(0.5, 0.5, 'palm')];
   let hits = 0;
-  for (let i = 0; i < 40; i++) hits += d.update(input(i % 2 ? 0.5 : 0.3), [zone], i * 30).length;
+  for (let i = 0; i < 40; i++) hits += d.update(input(i % 2 ? 0.5 : 0.3), [zone], i * 60).length;
   assert.equal(hits, 20);
 });
 
@@ -157,4 +157,26 @@ test('colored stick marker still triggers on one point', () => {
   const d=detector();
   d.update([{id:'pink',x:0.3,y:0.5}],[zone],0);
   assert.equal(d.update([{id:'pink',x:0.5,y:0.5}],[zone],50).length,1);
+});
+
+test('palm and fingertips share a 100 ms cooldown without queued hits', () => {
+  for (const first of ['palm','fingers']) {
+    const d=detector();
+    const input=(palm,fingers)=>[point(palm,0.5,'palm'),...['pointer','middle','thumb'].map(name=>point(fingers,0.5,name))];
+    const pose=(a,b)=>first==='palm'?input(a,b):input(b,a);
+    d.update(pose(0.3,0.3),[zone],0);
+    assert.equal(d.update(pose(0.5,0.3),[zone],20).length,1);
+    assert.equal(d.update(pose(0.5,0.5),[zone],80).length,0);
+    assert.equal(d.update(pose(0.5,0.5),[zone],150).length,0);
+    d.update(pose(0.3,0.3),[zone],170);
+    assert.equal(d.update(pose(0.5,0.3),[zone],190).length,1);
+  }
+});
+
+test('repeat guard permits a fresh strike exactly 100 ms later', () => {
+  const d=detector();
+  d.update(nodes(0.3,0.5),[zone],0);
+  assert.equal(d.update(nodes(0.5,0.5),[zone],20).length,1);
+  d.update(nodes(0.3,0.5),[zone],100);
+  assert.equal(d.update(nodes(0.5,0.5),[zone],120).length,1);
 });

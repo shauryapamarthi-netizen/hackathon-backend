@@ -4,6 +4,7 @@
       this.tracks = new Map();
       this.contacts = new Map();
       this.radiusScale = 1;
+      this.repeatDelayMs = 100;
     }
 
     reset() {
@@ -79,7 +80,7 @@
             entering += event.fresh;
             if (touching >= 3 && entering > 0) crossing = true;
           }
-          if (crossing && time - contact.lastHit >= 35) {
+          if (crossing && time - contact.lastHit >= this.repeatDelayMs) {
             hits.push({ drum: zone.id, velocity, source: hand });
             contact.lastHit = time;
           }
@@ -94,7 +95,7 @@
         if (time - point.time > 80) this.tracks.delete(id);
       }
       for (const [key, contact] of this.contacts) {
-        if (time - contact.lastSeen > 80) this.contacts.delete(key);
+        if (time - contact.lastSeen > Math.max(80, this.repeatDelayMs)) this.contacts.delete(key);
         else for (const id of contact.nodes.keys()) if (!this.tracks.has(id)) contact.nodes.delete(id);
       }
       return hits;
