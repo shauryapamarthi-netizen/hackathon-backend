@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Self-Improving Practice Coach</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; background: #0f1117; color: #e6e6e6; }
+  h1 { font-size: 1.4rem; }
+  .card { background: #1a1d27; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  button { background: #4f7cff; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; margin-right: 8px; }
+  button:disabled { background: #444; cursor: not-allowed; }
+  button.secondary { background: #2a2e3d; }
+  .skill-tag { display: inline-block; background: #2a2e3d; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; margin-top: 6px; }
+  .notes-list { font-family: monospace; font-size: 0.85rem; color: #aab; margin-top: 10px; }
+  .progress-bar { height: 8px; background: #2a2e3d; border-radius: 4px; margin-top: 12px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #4f7cff; width: 0%; transition: width 0.1s linear; }
+  .result-score { font-size: 2rem; font-weight: bold; }
+  .feedback-text { margin-top: 8px; color: #cdd; line-height: 1.4; }
+  #status { color: #9aa; font-size: 0.85rem; margin-top: 10px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+  <h1>Self-Improving Practice Coach</h1>
+
+  <div class="card">
+    <div id="exercise-info">Loading your next exercise...</div>
+    <div class="notes-list" id="notes-list"></div>
+    <div style="margin-top: 16px;">
+      <button id="demo-btn" class="secondary">Play Demo</button>
+      <button id="start-btn">Start Practice</button>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div id="status"></div>
+  </div>
+
+  <div class="card" id="result-card" style="display:none;">
+    <div class="result-score" id="result-score"></div>
+    <div class="feedback-text" id="feedback-text"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
