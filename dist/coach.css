@@ -71,53 +71,77 @@ html:fullscreen main,html:-webkit-full-screen main{min-height:100vh}
 .modes button{transition:background .15s ease,color .15s ease}
 .zone{transition:box-shadow .15s ease}
 
-/* Vivid color system: layered aurora background, each panel gets its own hue */
-body{
-  background:
-    radial-gradient(1000px 560px at 10% -8%, #ff7a5938 0%, transparent 62%),
-    radial-gradient(1000px 620px at 92% 6%, #35d0c042 0%, transparent 60%),
-    radial-gradient(1300px 820px at 50% 108%, #8b5cf638 0%, transparent 62%),
-    linear-gradient(180deg,#160c2c 0%,#100a22 55%,#0a0716 100%) fixed;
-  background-color:#0a0716;
+/* Twitch-inspired color system: flat neutral dark base, one purple accent, clean cards */
+body{background:#0e0e10}
+header{background:#18181bdd;backdrop-filter:blur(10px);border-bottom:1px solid #2d2d35}
+.eyebrow{color:#bf94ff}
+h1{color:#efeff1}
+
+.camera-panel,.chat-panel,.stage-column aside,.coach-banner,.getting-started,.insights-panel{
+  border-radius:8px;
+  background:#18181b;
+  border:1px solid #2d2d35;
+  box-shadow:0 2px 10px -2px #0008;
 }
-header{background:linear-gradient(90deg,#1a1230cc,#150c28cc);backdrop-filter:blur(6px);border-bottom:1px solid #3a2a5c}
-.eyebrow{color:#ff9d7a}
-h1{background:linear-gradient(100deg,#ffb199,#ff8fc2 45%,#a992ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
-
-.camera-panel,.chat-panel,.stage-column aside,.coach-banner,.getting-started{border-radius:18px;background-color:#170f2a}
 .panel-top,.camera-bottom{border-radius:inherit}
+.stage{background:#0e0e10}
 
-.camera-panel{border:1px solid #2f6e6a66;box-shadow:0 18px 46px -20px #35d0c04d,0 2px 0 #ffffff08 inset}
-.stage{background:radial-gradient(ellipse at 50% 42%,#1d3833 0%,#15241f 45%,#0e1613 100%)}
+.getting-started h3{color:#efeff1;letter-spacing:1.2px}
+.step{color:#848494}
+.step.active{color:#efeff1}
+.step.active .step-num{background:#9147ff;color:#fff;box-shadow:0 0 0 3px #9147ff33}
+.step.done .step-num{background:#00b894;color:#06231c}
 
-.stage-column aside{border:1px solid #5a3fa155;box-shadow:0 18px 46px -22px #8b5cf64d}
+.coach-banner{border-left:3px solid #9147ff}
+.coach-banner strong{color:#bf94ff}
+.coach-banner .coach-feedback{border-top-color:#2d2d35;color:#dedee3}
 
-.getting-started{background:linear-gradient(160deg,#241a42,#1a1332);border:1px solid #6d4fc455;box-shadow:0 14px 34px -18px #8b5cf655}
-.getting-started h3{color:#c9b6ff}
-.step.active{color:#f3eeff}
-.step.active .step-num{background:linear-gradient(135deg,#a992ff,#35d0c0);color:#120a26;box-shadow:0 0 0 4px #a992ff33}
-.step.done .step-num{background:linear-gradient(135deg,#7adfc0,#35d0c0);color:#0c1f1b}
+.insights-panel{border-left:3px solid #00b894;padding:14px 16px;margin-bottom:18px;font-size:12px;color:#dedee3}
+.insights-panel h3{margin:0 0 10px;font-size:11px;letter-spacing:1.6px;color:#bf94ff;font-weight:600;text-transform:uppercase}
+.insights-top{line-height:1.6;color:#dedee3;margin-bottom:12px}
+.skill-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:11px}
+.skill-label{flex:0 0 60px;color:#adadb8}
+.skill-track{flex:1;height:6px;background:#2d2d35;border-radius:3px;overflow:hidden}
+.skill-fill{height:100%;background:#9147ff;border-radius:3px;transition:width .3s ease}
+.skill-value{flex:0 0 72px;text-align:right;color:#adadb8;font-size:10px}
 
-.coach-banner{background:linear-gradient(160deg,#3a1f2e,#2a1626);border:1px solid #d1527a55;box-shadow:0 14px 34px -18px #ff6f9140}
-.coach-banner strong{color:#ff9fc0}
-.coach-banner .coach-feedback{border-top-color:#d1527a44;color:#f2d9e3}
+.chat-panel h2{color:#efeff1}
+.chat-messages{scrollbar-color:#2d2d35 transparent}
+.chat-msg.assistant{background:#1f1f23;border:1px solid #2d2d35;color:#efeff1}
+.chat-msg.assistant::before{content:'Coach';display:block;font-size:10px;font-weight:700;color:#bf94ff;margin-bottom:3px}
+.chat-msg.user{background:#26262c;border:1px solid #3a3a3d;color:#efeff1}
+.chat-msg.user::before{content:'You';display:block;font-size:10px;font-weight:700;color:#adadb8;margin-bottom:3px}
+.chat-form input{background:#0e0e10;border-color:#2d2d35;color:#efeff1}
+.chat-form input:focus{outline:2px solid #9147ff55;outline-offset:1px}
+.chat-form button{background:#9147ff;color:#fff}
+.chat-form button:hover{background:#772ce8}
 
-.chat-panel{background:linear-gradient(165deg,#1c1333,#160f28);border:1px solid #4f3fa166;box-shadow:0 18px 46px -20px #a992ff4d}
-.chat-panel h2{background:linear-gradient(100deg,#ff9fc0,#a992ff);-webkit-background-clip:text;background-clip:text;color:transparent}
-.chat-messages{scrollbar-color:#6d4fc4 transparent}
-.chat-msg.assistant{background:#241a3d;border:1px solid #4f3fa166;color:#e9e3ff}
-.chat-msg.user{background:linear-gradient(135deg,#ff6f9140,#a992ff40);border:1px solid #ff9fc044;color:#fff0f6}
-.chat-form input{background:#140d26;border-color:#4f3fa166}
-.chat-form input:focus{outline:2px solid #a992ff55;outline-offset:1px}
-.chat-form button{background:linear-gradient(135deg,#35d0c0,#a992ff);color:#0c1326;box-shadow:0 3px 16px -4px #35d0c066}
-
-.primary{background:linear-gradient(135deg,#ff9d7a,#ff6fa8);color:#2a0b16;box-shadow:0 3px 16px -4px #ff6fa866}
-#fullscreenBtn{background:linear-gradient(135deg,#4f3fa1,#2f6e6a);color:#f3eeff;border-color:#6d4fc455}
-#fullscreenBtn:hover{filter:brightness(1.15)}
+.primary{background:#9147ff;color:#fff;box-shadow:none}
+.primary:hover{background:#772ce8;filter:none}
+#fullscreenBtn{background:#26262c;color:#efeff1;border-color:#3a3a3d}
+#fullscreenBtn:hover{background:#3a3a3d;filter:none}
 
 .zone{transition:box-shadow .15s ease,border-color .15s ease}
-.zone:hover,.zone:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--tone) 55%,transparent),0 0 26px 2px color-mix(in srgb,var(--tone) 45%,transparent)}
-.modes .selected{background:linear-gradient(135deg,#ff9d7a,#ff6fa8);color:#2a0b16}
-.test-pads button{background:linear-gradient(160deg,#241a3d,#1c1333);border-color:#4f3fa166;color:#e4c9ff}
-.reset{border-color:#4f3fa166;color:#cdb8ff}
+.zone:hover,.zone:focus-visible{box-shadow:0 0 0 2px #9147ff99}
+.modes .selected{background:#9147ff;color:#fff}
+.test-pads button{background:#1f1f23;border-color:#2d2d35;color:#efeff1}
+.reset{border-color:#2d2d35;color:#adadb8}
+
+/* Sweep remaining orange/gold accents (mostly from jazz.css) to purple/neutral */
+:root{color:#efeff1}
+.logo{color:#9147ff}
+.text-button{color:#bf94ff}
+.home-link{color:#bf94ff}
+.step-label{color:#bf94ff}
+.version b{color:#bf94ff}
+.performance h3{color:#bf94ff}
+#trackingStatus{color:#bf94ff}
+.preset-apply{background:#9147ff;color:#fff}
+.preset-apply:hover{background:#772ce8}
+.visual-controls input{accent-color:#9147ff}
+.performance input,.performance select{accent-color:#9147ff}
+.panel-top,.camera-bottom{color:#adadb8}
+.aside-copy,.help,.intro p{color:#adadb8}
+footer{color:#848494}
+.stage-caption span:first-child{color:#bf94ff}
 

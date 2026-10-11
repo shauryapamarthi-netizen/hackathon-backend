@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const connectDB = require('./config/db');
 const Exercise = require('./models/Exercise');
@@ -24,87 +25,87 @@ app.use('/simple', express.static(path.join(__dirname, 'public')));
 
 const SEED_EXERCISES = [
   {
-    title: 'C major scale, slow',
-    targetSkill: 'pitch_accuracy',
+    title: 'Steady kick warm-up',
+    targetSkill: 'timing',
     difficulty: 1,
-    tempoBpm: 60,
+    tempoBpm: 70,
     notes: [
-      { pitch: 'C4', startBeat: 0, durationBeats: 1 },
-      { pitch: 'D4', startBeat: 1, durationBeats: 1 },
-      { pitch: 'E4', startBeat: 2, durationBeats: 1 },
-      { pitch: 'F4', startBeat: 3, durationBeats: 1 }
+      { pitch: 'kick', startBeat: 0, durationBeats: 1 },
+      { pitch: 'kick', startBeat: 1, durationBeats: 1 },
+      { pitch: 'kick', startBeat: 2, durationBeats: 1 },
+      { pitch: 'kick', startBeat: 3, durationBeats: 1 }
     ]
   },
   {
-    title: 'C major scale, fast',
-    targetSkill: 'pitch_accuracy',
+    title: 'Basic rock beat',
+    targetSkill: 'timing',
+    difficulty: 2,
+    tempoBpm: 92,
+    notes: [
+      { pitch: 'kick', startBeat: 0, durationBeats: 1 },
+      { pitch: 'hi-hat', startBeat: 1, durationBeats: 1 },
+      { pitch: 'snare', startBeat: 2, durationBeats: 1 },
+      { pitch: 'hi-hat', startBeat: 3, durationBeats: 1 }
+    ]
+  },
+  {
+    title: 'Four-on-the-floor',
+    targetSkill: 'rhythm_accuracy',
     difficulty: 2,
     tempoBpm: 120,
     notes: [
-      { pitch: 'C4', startBeat: 0, durationBeats: 0.5 },
-      { pitch: 'D4', startBeat: 0.5, durationBeats: 0.5 },
-      { pitch: 'E4', startBeat: 1, durationBeats: 0.5 },
-      { pitch: 'F4', startBeat: 1.5, durationBeats: 0.5 }
+      { pitch: 'kick', startBeat: 0, durationBeats: 0.5 },
+      { pitch: 'kick', startBeat: 0.5, durationBeats: 0.5 },
+      { pitch: 'kick', startBeat: 1, durationBeats: 0.5 },
+      { pitch: 'kick', startBeat: 1.5, durationBeats: 0.5 }
     ]
   },
   {
-    title: 'Steady quarter notes',
-    targetSkill: 'rhythm_accuracy',
-    difficulty: 1,
-    tempoBpm: 80,
-    notes: [
-      { pitch: 'C4', startBeat: 0, durationBeats: 1 },
-      { pitch: 'C4', startBeat: 1, durationBeats: 1 },
-      { pitch: 'C4', startBeat: 2, durationBeats: 1 },
-      { pitch: 'C4', startBeat: 3, durationBeats: 1 }
-    ]
-  },
-  {
-    title: 'Syncopated rhythm drill',
+    title: 'Syncopated snare drill',
     targetSkill: 'rhythm_accuracy',
     difficulty: 3,
     tempoBpm: 100,
     notes: [
-      { pitch: 'C4', startBeat: 0, durationBeats: 0.5 },
-      { pitch: 'C4', startBeat: 0.75, durationBeats: 0.25 },
-      { pitch: 'C4', startBeat: 1.5, durationBeats: 0.5 },
-      { pitch: 'C4', startBeat: 2.5, durationBeats: 1 }
+      { pitch: 'snare', startBeat: 0, durationBeats: 0.5 },
+      { pitch: 'snare', startBeat: 0.75, durationBeats: 0.25 },
+      { pitch: 'snare', startBeat: 1.5, durationBeats: 0.5 },
+      { pitch: 'snare', startBeat: 2.5, durationBeats: 1 }
     ]
   },
   {
-    title: 'Metronome lock-in',
-    targetSkill: 'timing',
-    difficulty: 2,
-    tempoBpm: 90,
-    notes: [
-      { pitch: 'G4', startBeat: 0, durationBeats: 1 },
-      { pitch: 'G4', startBeat: 1, durationBeats: 1 },
-      { pitch: 'G4', startBeat: 2, durationBeats: 1 },
-      { pitch: 'G4', startBeat: 3, durationBeats: 1 }
-    ]
-  },
-  {
-    title: 'Octave leaps',
+    title: 'Hi-hat / snare alternation',
     targetSkill: 'interval_accuracy',
     difficulty: 2,
-    tempoBpm: 70,
+    tempoBpm: 80,
     notes: [
-      { pitch: 'C4', startBeat: 0, durationBeats: 1 },
-      { pitch: 'C5', startBeat: 1, durationBeats: 1 },
-      { pitch: 'C4', startBeat: 2, durationBeats: 1 },
-      { pitch: 'C5', startBeat: 3, durationBeats: 1 }
+      { pitch: 'hi-hat', startBeat: 0, durationBeats: 1 },
+      { pitch: 'snare', startBeat: 1, durationBeats: 1 },
+      { pitch: 'hi-hat', startBeat: 2, durationBeats: 1 },
+      { pitch: 'snare', startBeat: 3, durationBeats: 1 }
     ]
   },
   {
-    title: 'Fifths practice',
-    targetSkill: 'interval_accuracy',
+    title: 'Crash accent drill',
+    targetSkill: 'pitch_accuracy',
     difficulty: 1,
     tempoBpm: 60,
     notes: [
-      { pitch: 'C4', startBeat: 0, durationBeats: 1 },
-      { pitch: 'G4', startBeat: 1, durationBeats: 1 },
-      { pitch: 'C4', startBeat: 2, durationBeats: 1 },
-      { pitch: 'G4', startBeat: 3, durationBeats: 1 }
+      { pitch: 'kick', startBeat: 0, durationBeats: 1 },
+      { pitch: 'crash', startBeat: 1, durationBeats: 1 },
+      { pitch: 'kick', startBeat: 2, durationBeats: 1 },
+      { pitch: 'crash', startBeat: 3, durationBeats: 1 }
+    ]
+  },
+  {
+    title: 'Full kit round robin',
+    targetSkill: 'pitch_accuracy',
+    difficulty: 2,
+    tempoBpm: 70,
+    notes: [
+      { pitch: 'kick', startBeat: 0, durationBeats: 1 },
+      { pitch: 'snare', startBeat: 1, durationBeats: 1 },
+      { pitch: 'hi-hat', startBeat: 2, durationBeats: 1 },
+      { pitch: 'mid-tom', startBeat: 3, durationBeats: 1 }
     ]
   }
 ];
@@ -112,10 +113,11 @@ const SEED_EXERCISES = [
 async function start() {
   await connectDB();
 
-  const existingCount = await Exercise.countDocuments();
-  if (existingCount === 0) {
+  const hasCurrentSeed = await Exercise.exists({ title: SEED_EXERCISES[0].title });
+  if (!hasCurrentSeed) {
+    await Exercise.deleteMany({});
     await Exercise.insertMany(SEED_EXERCISES);
-    console.log(`Seeded ${SEED_EXERCISES.length} exercises`);
+    console.log(`Seeded ${SEED_EXERCISES.length} drum exercises`);
   }
 
   app.get('/health', (req, res) => res.json({ ok: true }));
@@ -147,6 +149,9 @@ async function start() {
       return res.status(400).json({
         error: 'userId, exerciseId, and numeric pitchAccuracy/rhythmAccuracy (0-100) are required'
       });
+    }
+    if (!mongoose.Types.ObjectId.isValid(exerciseId)) {
+      return res.status(400).json({ error: 'exerciseId is not a valid id' });
     }
 
     const exercise = await Exercise.findById(exerciseId);
@@ -201,6 +206,11 @@ async function start() {
     }
     const reply = await generateChatReply(messages, context);
     res.json({ reply });
+  });
+
+  app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ error: 'Something went wrong on the server' });
   });
 
   const PORT = process.env.PORT || 3000;
