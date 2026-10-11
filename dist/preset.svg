@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 440" role="img" aria-labelledby="title desc">
+<title id="title">Spatial drum kit preset</title><desc id="desc">Crash and ride at the back, high and mid toms in the middle, hi-hats on the left, snare and floor tom below, and bass drum at the lower center.</desc>
+<defs>
+<radialGradient id="bg"><stop stop-color="#39242a"/><stop offset="1" stop-color="#160f12"/></radialGradient>
+<radialGradient id="brass" cx="38%" cy="30%"><stop stop-color="#f5d899"/><stop offset=".4" stop-color="#b58843"/><stop offset=".7" stop-color="#e6bf76"/><stop offset="1" stop-color="#8c642c"/></radialGradient>
+<linearGradient id="shell"><stop stop-color="#4b2624"/><stop offset=".3" stop-color="#b0785f"/><stop offset=".7" stop-color="#7d4f40"/><stop offset="1" stop-color="#3e2525"/></linearGradient>
+<radialGradient id="skin" cx="35%" cy="25%"><stop stop-color="#f0e8d5"/><stop offset="1" stop-color="#b3b4a4"/></radialGradient>
+<radialGradient id="kick"><stop stop-color="#3c4540"/><stop offset="1" stop-color="#101614"/></radialGradient>
+<pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#cfaf8010"/></pattern>
+<g id="tom"><path d="M-43 0v26c0 27 86 27 86 0V0" fill="url(#shell)" stroke="#aa9180"/><ellipse rx="43" ry="29" fill="url(#skin)" stroke="#c0c4b7" stroke-width="4"/><ellipse rx="38" ry="25" fill="none" stroke="#7c8375"/><path d="M-38 9v15M38 9v15M-20 26v13M20 26v13" stroke="#d8d6c5" stroke-width="3"/></g>
+<g id="cymbal"><ellipse cy="4" rx="54" ry="31" fill="#765126"/><ellipse rx="54" ry="31" fill="url(#brass)" stroke="#e8c479"/><g fill="none" stroke="#815c2b" opacity=".35"><ellipse rx="48" ry="27"/><ellipse rx="41" ry="23"/><ellipse rx="34" ry="19"/><ellipse rx="27" ry="15"/></g><ellipse rx="10" ry="6" fill="#ddba70"/><circle r="3" fill="#32261b"/></g>
+</defs>
+<rect x="1" y="1" width="558" height="438" rx="14" fill="url(#bg)" stroke="#66483e"/><rect x="10" y="10" width="540" height="420" rx="10" fill="url(#grid)"/>
+<g font-family="Arial,sans-serif" font-size="10" letter-spacing="2" fill="#c3a77c"><text x="24" y="31">SPATIAL 3D PRESET</text><text x="536" y="31" text-anchor="end">08 INSTRUMENTS</text></g>
+<g transform="translate(112 98)"><use href="#cymbal"/></g><g transform="translate(451 115) scale(1.16)"><use href="#cymbal"/></g>
+<g transform="translate(207 181) scale(.87)"><use href="#tom"/></g><g transform="translate(336 189)"><use href="#tom"/></g>
+<g transform="translate(84 235) scale(.82)"><use href="#cymbal" y="8"/><use href="#cymbal"/></g>
+<g transform="translate(191 285)"><use href="#tom"/></g><g transform="translate(426 289) scale(1.15)"><use href="#tom"/></g>
+<g transform="translate(280 337)"><ellipse cy="7" rx="58" ry="55" fill="url(#shell)" stroke="#aa9180" stroke-width="4"/><ellipse rx="57" ry="54" fill="url(#kick)" stroke="#bcc1b5" stroke-width="5"/><ellipse rx="49" ry="47" fill="none" stroke="#6e7c70" stroke-width="2"/><circle cx="23" cy="23" r="9" fill="#060a08"/></g>
+<g font-family="Arial,sans-serif" font-size="12" text-anchor="middle" fill="#f4e6cf" stroke="#251b18" stroke-width="4" paint-order="stroke" stroke-linejoin="round"><text x="112" y="103">Crash</text><text x="451" y="120">Ride</text><text x="207" y="186">High tom</text><text x="336" y="194">Mid tom</text><text x="84" y="240">Hi-hats</text><text x="191" y="290">Snare</text><text x="426" y="294">Floor tom</text><text x="280" y="341">Bass drum</text></g>
+<text x="280" y="417" text-anchor="middle" fill="#b29b86" font-family="Arial,sans-serif" font-size="10" letter-spacing="1">YOUR SEAT · YOUR PERSPECTIVE</text>
+</svg>
