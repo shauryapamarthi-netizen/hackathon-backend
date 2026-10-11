@@ -1,35 +1,76 @@
-# Air Drum — audio only
+# Air Drum — advanced pencil tracking
 
-Hand tracking, colored-tip tracking, hit detection, sensitivity controls, overlays and automatic tracking model downloads have been removed. Camera preview and drum arrangement remain for your teammate to use. No WebSocket connection is created by this version.
+Drop-in studio files for the BBG hackathon site. **Hand tracking is not included** (for your teammate). This pack adds fast pencil-tip tracking that feels like a real kit: tip endpoints (not blob centers), bounce re-arm for rolls, and ~38 ms cooldown for spam rhythms.
 
-## Run
+## Upload to GitHub (replace live studio)
 
-Run `node start.cjs` from this folder, then open http://127.0.0.1:4173/studio.html. For the Express API, use `npm install` then `npm start`.
+1. Unzip `air-drum-pencil-tracking.zip` (or use this folder).
+2. On GitHub → your repo → `dist/` → **Add file → Upload files**.
+3. Upload / overwrite these files from `dist/`:
 
-Click Enable sound. Test drum buttons or use A/S/D/F/Space when focus is outside form controls and buttons. In Play mode, the drum zones are clickable too. Volume, animations, metronome, practice timing summary, recording and JSON export remain. Samples are synthesized locally; no API key needed.
+   - `performance.js`
+   - `performance.css`
+   - `app.js`
+   - `studio.html`
+   - `strike-detector.js`
+   - `pencil-tracker.js`
+   - `drum-audio.js` (keep if not already present)
 
-## Connect your teammate's tracker
+4. Commit. Wait for Vercel **Ready**, then hard-refresh the studio (`⌘⇧R`).
 
-After the user clicks Enable sound and selects Play, call once per detected hit:
+Live URL pattern: `https://hackathon-backend-dist.vercel.app/studio.html`
 
-```js
-window.airDrumStudio.hit('snare', 0.85);
+## Local demo
+
+```sh
+node start.cjs
 ```
 
-Drum IDs: `snare`, `hi-hat`, `mid-tom`, `crash`, `kick`. Velocity is a finite number from 0 to 1. Returns true when played; false if audio is not ready, Arrange mode is active, or input is invalid. The function triggers audio, visual feedback and recording together.
+Open **http://127.0.0.1:4173/studio.html** (not `file://`).
 
-Alternatively:
-
-```js
-window.dispatchEvent(new CustomEvent('drum-hit', {
-  detail: { drum: 'snare', velocity: 0.85 }
-}));
+```sh
+npm test
 ```
 
-`window.airDrumStudio.getLayout()` provides normalized mirrored camera-image drum coordinates and dimensions; `getMode()` gives arrange/play. The existing `#video` element provides the camera preview. Your teammate owns tracking and strike detection and can call the hit function from their WebSocket handler or browser tracker. No gold strike-line rule is imposed by this audio code.
+## How to play with pencils
 
-## Upload this revision
+1. **Enable sound** → test pads should click.
+2. **Enable camera**.
+3. Choose input:
+   - **Pencils · pink + cyan tips** (most reliable): wrap one tip in bright magenta/pink tape, the other in cyan. Plain background, bright light.
+   - **Pencils · yellow wood (#2)**: two classic yellow pencils; tips track graphite/eraser ends.
+4. **Start pencil tracking** — colored dots should sit on the **tips**, not the middle of the stick.
+5. **Arrange** drums so gold strike lines sit where your strokes land, with room above to lift.
+6. **Play** → strike **down** through a gold line. For rolls, a small bounce re-arms (you do not need a huge lift every time).
+7. Raise **Sensitivity** if light strokes miss; lower it if you get false hits.
 
-Replace the files at their existing repository paths, especially `dist/performance.js`, `dist/performance.css`, `dist/app.js` and `dist/studio.html`. `dist/strike-detector.js` and `tests/strike-detector.cjs` are intentionally inactive placeholders so a browser upload also neutralizes the prior files. They can be deleted later.
+## What changed vs the old tracker
 
-Run `npm test` for the audio buffer/overlap check. This revision has been syntax checked and audio logic tested; physical audio output and your teammate's tracker need testing on the demo machine. The live site is unchanged until you commit these files and Vercel redeploys.
+| Old | New |
+|-----|-----|
+| Blob **centroid** (late hits) | Tip = **bottom extremity** of the color blob |
+| Lift fully above the line to re-arm | **Bounce re-arm** + lift |
+| ~75 ms cooldown | **~38 ms** (rolls / 16ths) |
+| Hands + markers mixed | **Pencil-only** (+ optional backend events) |
+| 320×180 detect | **480×270** + adaptive smoothing |
+
+Teammate API (unchanged): after Enable sound + Play,
+
+```js
+window.airDrumStudio.hit("snare", 0.85);
+```
+
+Backend WebSocket still accepts:
+
+```json
+{"type":"drum_hit","drum":"snare","velocity":0.85,"eventId":"unique-hit-123"}
+```
+
+## What I need from you (if tips still miss)
+
+- Bright desk lamp on the kit area
+- Plain wall/desk (no pink/cyan/yellow clutter for the mode you chose)
+- Screenshot of the studio with tip dots visible (or “No neon tips found”)
+- Whether you’re on neon tape or yellow #2 mode
+
+Camera + CV stay in the browser. No API key.
