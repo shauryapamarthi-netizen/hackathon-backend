@@ -145,3 +145,5 @@ h1{color:#efeff1}
 footer{color:#848494}
 .stage-caption span:first-child{color:#bf94ff}
 
+.live-feedback{background:#1f1f23;border:1px solid #2d2d35;border-left:3px solid #9147ff;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#efeff1;transition:background .15s ease}
+

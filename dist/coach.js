@@ -223,4 +223,64 @@ import './performance.js';
       }
     });
   }
+
+  function setupLiveFeedback() {
+    const audio = window.drumAudio;
+    const studio = window.airDrumStudio;
+    if (!audio || !studio || typeof studio.hit !== 'function' || typeof audio.tick !== 'function') return;
+
+    const ON_BEAT_MS = 40;
+    const CLOSE_MS = 90;
+
+    const liveEl = document.createElement('div');
+    liveEl.id = 'liveFeedback';
+    liveEl.className = 'live-feedback';
+    liveEl.textContent = 'Live feedback appears here as you play.';
+    if (banner) banner.insertAdjacentElement('afterend', liveEl);
+
+    let lastTickWhen = null;
+    let tickPeriod = null;
+    const originalTick = audio.tick.bind(audio);
+    audio.tick = (when, accent) => {
+      if (lastTickWhen != null) {
+        const delta = when - lastTickWhen;
+        if (delta > 0.05 && delta < 3) tickPeriod = delta;
+      }
+      lastTickWhen = when;
+      return originalTick(when, accent);
+    };
+
+    let hitStreak = 0;
+    const originalHit = studio.hit.bind(studio);
+    studio.hit = (name, velocity) => {
+      const played = originalHit(name, velocity);
+      if (!played) return played;
+
+      if (lastTickWhen == null || !tickPeriod || !audio.context) {
+        liveEl.textContent = `🥁 ${name} hit! Start the metronome for live timing feedback.`;
+        return played;
+      }
+
+      const now = audio.context.currentTime;
+      const beatsSinceTick = (now - lastTickWhen) / tickPeriod;
+      const offsetMs = (beatsSinceTick - Math.round(beatsSinceTick)) * tickPeriod * 1000;
+      const absMs = Math.abs(offsetMs);
+
+      let text;
+      if (absMs < ON_BEAT_MS) {
+        hitStreak++;
+        text = `🎯 ${name} — right on the beat!`;
+      } else if (absMs < CLOSE_MS) {
+        hitStreak++;
+        text = `👍 ${name} — close, a touch ${offsetMs > 0 ? 'late' : 'early'}`;
+      } else {
+        hitStreak = 0;
+        text = `⏱ ${name} — ${offsetMs > 0 ? 'rushing late' : 'a bit early'}, aim closer to the click`;
+      }
+      if (hitStreak >= 5) text += ` (${hitStreak} in a row!)`;
+      liveEl.textContent = text;
+      return played;
+    };
+  }
+  setupLiveFeedback();
 })();
