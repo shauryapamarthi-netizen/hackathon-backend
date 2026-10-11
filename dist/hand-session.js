@@ -48,7 +48,7 @@ export class HandSession {
         const previous = track.points.find(candidate => candidate.name === point.name);
         if (!previous) continue;
         const predicted = { x: previous.x + track.vx * horizon, y: previous.y + track.vy * horizon };
-        const cost = distance(predicted, point);
+        const cost = Math.min(distance(predicted, point), distance(previous, point));
         if (cost <= (dt > 150 ? 0.3 : 0.18) && cost < best.cost) best = { cost, previous, point };
       }
       return best;

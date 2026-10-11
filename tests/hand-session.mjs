@@ -113,3 +113,10 @@ test('no selected points in frame produces no tracked hand', () => {
   const outside = hand(-2);
   assert.deepEqual(session.update([outside], 820).hands, []);
 });
+
+test('fast direction reversal keeps the hand selected', () => {
+  const session = enrolled();
+  assert.equal(session.update([hand(0.32), hand(0.8, 'Right')], 820).hands.length, 2);
+  const result = session.update([hand(0.2), hand(0.8, 'Right')], 840);
+  assert.deepEqual(result.hands.map(hand => hand.id), ['hand-1', 'hand-2']);
+});

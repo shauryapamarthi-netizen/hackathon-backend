@@ -6,19 +6,21 @@ const detector=new window.StrikeDetector();let running=false,landmarker,loading=
 const panel=document.createElement('section');panel.className='performance';panel.innerHTML=`
 <h3>PLAY YOUR SPACE</h3><div class="camera-coach"><strong>CAMERA GUIDE</strong><p id="cameraAdvice" role="status">Enable the camera for live framing guidance.</p><small>Uses lighting, room edges and hand positions. No room reconstruction or video upload.</small></div><button id="soundOn" class="primary">Enable sound</button>
 <label>Input<select id="inputMode"><option value="hands">Hands · five-point tracking</option><option value="markers">Sticks · pink + cyan tips</option><option value="backend">Backend · hit events</option></select></label>
-<p id="inputHelp">Show both open hands briefly to select them. Any one tracked dot touching a glowing hit area plays it. Move clear of the area before touching it again.</p>
+<p id="inputHelp">Show both open hands briefly to select them. Any one tracked dot touching a glowing hit area plays it. Lift the striking finger clear, then touch again for another hit.</p>
 <button id="trackToggle" class="reset">Start tracking</button><button id="setupHands" class="reset" disabled>Set up hands again</button><div id="trackingStatus" role="status">Sound and tracking are off.</div>
 <label>Hit area <output id="radiusValue">100%</output><input id="sensitivity" type="range" min="80" max="125" value="100"></label>
 <label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
 <div id="backendSettings" hidden><label>WebSocket URL<input id="wsUrl" placeholder="wss://your-server/ws"></label><p>Connects to an existing backend that sends drum_hit events. No camera frames are uploaded by this client.</p></div>
 <div class="test-pads"><button data-hit="hi-hat">A · Hi-hat</button><button data-hit="snare">S · Snare</button><button data-hit="mid-tom">D · Tom</button><button data-hit="crash">F · Crash</button><button data-hit="kick">Space · Kick</button></div>
-<div class="readouts"><span id="hitCount">0 hits</span><span id="lastHit">Ready</span></div>
+<p id="speedStatus">Tracking speed appears when you start playing.</p><div class="readouts"><span id="hitCount">0 hits</span><span id="lastHit">Ready</span></div>
 <label>Practice tempo <input id="bpm" type="number" min="40" max="220" value="90"></label><button id="metro" class="reset">Start metronome</button>
 <button id="record" class="reset">Record practice</button><button id="download" class="reset" disabled>Export hit log</button><p id="feedback" role="status">Practice one hit per click. Your timing summary appears after recording.</p>`;
 document.querySelector('aside').append(panel);
 document.querySelector('.backend').textContent='Local sound engine · no API key';
 const canvas=document.createElement('canvas');canvas.className='tracking-overlay';$('zones').append(canvas);const pen=canvas.getContext('2d');
 let hits=0;
+const flashes=new Map();
+let statsSince=0,statsFrames=0,statsInference=0;
 let guidePoints=[];
 const guideCanvas=document.createElement('canvas');guideCanvas.width=160;guideCanvas.height=90;
 const guideContext=guideCanvas.getContext('2d',{willReadFrequently:true});
@@ -35,11 +37,11 @@ const guideTimer=setInterval(()=>{
  if($('cameraAdvice').textContent!==message)$('cameraAdvice').textContent=message;
 },500);
 window.addEventListener('pagehide',()=>clearInterval(guideTimer));
-function status(s){$('trackingStatus').textContent=s;}
+function status(s){if($('trackingStatus').textContent!==s)$('trackingStatus').textContent=s;}
 function hit(id,velocity=1,source='manual'){
  if(!audio.play(id,velocity))return;
  hits++;$('hitCount').textContent=`${hits} hits`;$('lastHit').textContent=id;
- const el=$(id);if(el){el.classList.remove('struck');void el.offsetWidth;el.classList.add('struck');}
+ const el=$(id);if(el){flashes.get(id)?.cancel();flashes.set(id,el.animate([{filter:'brightness(2.2)'},{filter:'brightness(1)'}],{duration:100}));}
  if(recording&&session.length<50000)session.push({drum:id,velocity,source,timestamp:performance.now()-sessionStart,audioTime:audio.context.currentTime});
 }
 async function enableSound(){await audio.init();audio.volume(+$('volume').value/100);$('soundOn').textContent='Sound enabled ✓';}
@@ -71,16 +73,24 @@ async function loadHands(){if(landmarker)return;status('Loading hand model… In
 function scheduleFrame(){const v=$('video');raf=v.requestVideoFrameCallback?v.requestVideoFrameCallback(frame):requestAnimationFrame(frame);}
 function frame(now){if(!running)return;const v=$('video');
  try{if(!v.srcObject||v.readyState<2){stop();status('Camera is off. Enable the camera, then start tracking again.');return;}
- if(v.currentTime!==lastFrame){lastFrame=v.currentTime;let points,displayed,selection;
+ if(v.currentTime!==lastFrame){lastFrame=v.currentTime;let points,displayed,selection;const inferenceStart=performance.now();
  if($('inputMode').value==='markers'){points=markers(v);displayed=points;}
  else{
   selection=handInput.update(landmarker.detectForVideo(v,now),now);
   if(selection.timedOut){stop();studio.stopCamera();status('No hands seen for 10 seconds. Enable the camera and start tracking again.');return;}
   points=selection.strikePoints;displayed=selection.overlayPoints;guidePoints=displayed;
-  window.dispatchEvent(new CustomEvent('hands-detected',{detail:selection}));
  }
- const zones=studio.getLayout();render(displayed,zones);
+ const inferenceMs=performance.now()-inferenceStart;
+ const zones=studio.getLayout();
  if(studio.getMode()==='play'){for(const h of detector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else detector.reset();
+ render(displayed,zones);
+ if(selection)window.dispatchEvent(new CustomEvent('hands-detected',{detail:selection}));
+ statsFrames++;statsInference+=inferenceMs;
+ if(now-statsSince>=1000){
+  const fps=Math.round(statsFrames*1000/(now-statsSince));
+  $('speedStatus').textContent=`${fps} tracking frames/sec · ${Math.round(statsInference/statsFrames)} ms processing`+(fps<25?' · Try brighter lighting or colored stick tips.':'');
+  statsSince=now;statsFrames=0;statsInference=0;
+ }
  status(selection?selection.message:points.length?`${points.length} tracked · ${studio.getMode()==='play'?'touch a glowing hit area':'switch to Play when positioned'}`:'No input detected · keep colored tips visible');
  }scheduleFrame();
  }catch(e){stop();status('Tracking stopped: '+e.message);}
@@ -105,8 +115,8 @@ function backend(){const url=new URL($('wsUrl').value);if(!['ws:','wss:'].includ
  ws.onerror=()=>status('Backend connection failed. Check the URL and server.');ws.onclose=()=>{if(socket===ws){stop();status('Backend disconnected. Start tracking to reconnect.')}};
 }
 $('trackToggle').onclick=async()=>{if(running){stop();status('Tracking stopped.');return}if(loading)return;loading=true;$('trackToggle').disabled=true;$('inputMode').disabled=true;
- try{await enableSound();if($('inputMode').value==='backend'){backend();running=true;}else{if(!$('video').srcObject)throw Error('Enable the camera first.');if($('inputMode').value==='hands')await loadHands();handInput.reset(performance.now());running=true;scheduleFrame();$('setupHands').disabled=$('inputMode').value!=='hands';}$('trackToggle').textContent='Stop tracking';}catch(e){stop();status(e.message+' You can still test the drum buttons.');}finally{loading=false;$('trackToggle').disabled=false;$('inputMode').disabled=false;}};
-$('inputMode').onchange=()=>{stop();$('backendSettings').hidden=$('inputMode').value!=='backend';$('inputHelp').textContent=$('inputMode').value==='markers'?'Wrap one tip in bright pink tape and the other in cyan tape. Use good light and a plain background without those colors. Markers should appear at least 5 pixels wide.':$('inputMode').value==='hands'?'Show both open hands briefly to select them. Any one tracked dot touching a glowing hit area plays it. Move clear of the area before touching it again.':'Your backend supplies drum hits; this mode does not run camera tracking or send video.';status('Input changed. Press Start tracking.');};
+ try{await enableSound();if($('inputMode').value==='backend'){backend();running=true;}else{if(!$('video').srcObject)throw Error('Enable the camera first.');if($('inputMode').value==='hands')await loadHands();handInput.reset(performance.now());running=true;statsSince=performance.now();statsFrames=0;statsInference=0;scheduleFrame();$('setupHands').disabled=$('inputMode').value!=='hands';}$('trackToggle').textContent='Stop tracking';}catch(e){stop();status(e.message+' You can still test the drum buttons.');}finally{loading=false;$('trackToggle').disabled=false;$('inputMode').disabled=false;}};
+$('inputMode').onchange=()=>{stop();$('backendSettings').hidden=$('inputMode').value!=='backend';$('inputHelp').textContent=$('inputMode').value==='markers'?'Wrap one tip in bright pink tape and the other in cyan tape. Use good light and a plain background without those colors. Markers should appear at least 5 pixels wide.':$('inputMode').value==='hands'?'Show both open hands briefly to select them. Any one tracked dot touching a glowing hit area plays it. Lift the striking finger clear, then touch again for another hit.':'Your backend supplies drum hits; this mode does not run camera tracking or send video.';status('Input changed. Press Start tracking.');};
 $('arrange').addEventListener('click',()=>{detector.reset()});$('play').addEventListener('click',()=>{$('stageHint').textContent='Touch one point to a glowing hit area';});
 function stopMetro(){clearInterval(metro);metro=null;$('metro').textContent='Start metronome';}
 $('metro').onclick=async()=>{if(metro){stopMetro();return}try{await enableSound();tempo=Math.max(40,Math.min(220,Number($('bpm').value)||90));$('bpm').value=tempo;nextBeat=audio.context.currentTime+.1;beat=0;const schedule=()=>{while(nextBeat<audio.context.currentTime+.08){audio.tick(nextBeat,beat%4===0);nextBeat+=60/tempo;beat++;}};metro=setInterval(schedule,25);schedule();$('metro').textContent='Stop metronome';}catch(e){status(e.message)}};

@@ -85,11 +85,11 @@ test('single points from different hands trigger independently', () => {
   assert.equal(d.update(input(0.5), [zone], 50).length, 2);
 });
 
-test('a hand already inside stays held when another point enters', () => {
+test('a resting palm does not block a moving fingertip', () => {
   const d = detector();
   const input = x => [point(0.5, 0.5, 'middle'), point(x, 0.5, 'thumb')];
   d.update(input(0.3), [zone], 0);
-  assert.equal(d.update(input(0.5), [zone], 50).length, 0);
+  assert.equal(d.update(input(0.5), [zone], 50).length, 1);
   assert.equal(d.update(input(0.5), [zone], 150).length, 0);
 });
 
@@ -116,4 +116,28 @@ test('tilted drum ellipse rejects points above the flattened head', () => {
   d.update(nodes(0.2, 0.56), [tilted], 0);
   assert.equal(d.update(nodes(0.5, 0.56), [tilted], 50).length, 0);
   assert.equal(d.update(nodes(0.5, 0.5), [tilted], 100).length, 1);
+});
+
+test('single-frame dropout preserves an observed crossing without inventing hits', () => {
+  const d = detector();
+  d.update(nodes(0.3, 0.5), [zone], 0);
+  assert.equal(d.update([], [zone], 16).length, 0);
+  assert.equal(d.update(nodes(0.5, 0.5), [zone], 32).length, 1);
+  d.update([], [zone], 48);
+  assert.equal(d.update(nodes(0.5, 0.5), [zone], 64).length, 0);
+});
+
+test('long dropout does not connect stale points into a strike', () => {
+  const d = detector();
+  d.update(nodes(0.3, 0.5), [zone], 0);
+  d.update([], [zone], 16);
+  assert.equal(d.update(nodes(0.5, 0.5), [zone], 200).length, 0);
+});
+
+test('rapid 60 ms strokes do not drop beats while another point rests inside', () => {
+  const d = detector();
+  const input = x => [point(x, 0.5), point(0.5, 0.5, 'palm')];
+  let hits = 0;
+  for (let i = 0; i < 40; i++) hits += d.update(input(i % 2 ? 0.5 : 0.3), [zone], i * 30).length;
+  assert.equal(hits, 20);
 });
