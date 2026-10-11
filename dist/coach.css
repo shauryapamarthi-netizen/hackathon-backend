@@ -8,6 +8,7 @@
 .coach-banner .coach-feedback{margin-top:8px;padding-top:8px;border-top:1px solid #343e35;color:#c9d6c4}
 
 .calibration-overlay{position:absolute;inset:0;background:#0d1210e6;display:flex;align-items:center;justify-content:center;z-index:30;padding:20px}
+.calibration-overlay[hidden]{display:none}
 .calibration-box{max-width:320px;text-align:center}
 .calibration-box h3{font-family:Manrope,sans-serif;font-size:18px;font-weight:500;margin:0 0 10px;color:#ecece6}
 .calibration-box p{font-size:12px;color:#aab6a6;margin:0 0 16px}
