@@ -20,6 +20,10 @@ function clampScore(value) {
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '64kb' }));
+app.post('/train-feedback', async (req, res) => {
+  const result = await require('./lib/train-feedback').trainingFeedback(req.body);
+  res.status(result.status).json(result.body);
+});
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/simple', express.static(path.join(__dirname, 'public')));
 

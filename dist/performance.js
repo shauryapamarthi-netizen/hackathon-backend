@@ -39,8 +39,10 @@ const guideTimer=setInterval(()=>{
 },500);
 window.addEventListener('pagehide',()=>clearInterval(guideTimer));
 function status(s){if($('trackingStatus').textContent!==s)$('trackingStatus').textContent=s;}
-function hit(id,velocity=1,source='manual'){
+function hit(id,velocity=1,source='manual',input='manual'){
+ if(studio.trainingCameraOnly&&input!=='camera')return false;
  if(!audio.play(id,velocity))return false;
+ window.dispatchEvent(new CustomEvent('air-drum-played',{detail:{drum:id,time:audio.context.currentTime,source,input}}));
  hits++;$('hitCount').textContent=`${hits} hits`;$('lastHit').textContent=id;
  const el=$(id);if(el){flashes.get(id)?.cancel();flashes.set(id,el.animate([{filter:'brightness(2.2)'},{filter:'brightness(1)'}],{duration:100}));}
  if(recording&&session.length<50000)session.push({drum:id,velocity,source,timestamp:performance.now()-sessionStart,audioTime:audio.context.currentTime});
@@ -52,7 +54,7 @@ $('volume').oninput=()=>audio.volume(+$('volume').value/100);
 $('sensitivity').oninput=()=>{detector.radiusScale=+$('sensitivity').value/100;$('radiusValue').value=$('sensitivity').value+'%';detector.reset();};$('sensitivity').oninput();
 for(const b of panel.querySelectorAll('[data-hit]'))b.onclick=async()=>{try{await enableSound();hit(b.dataset.hit)}catch(e){status(e.message)}};
 for(const z of document.querySelectorAll('.zone'))z.addEventListener('click',async()=>{if(studio.getMode()==='play'){try{await enableSound();hit(z.id)}catch(e){status(e.message)}}});
-window.addEventListener('keydown',async e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;const id={KeyA:'hi-hat',KeyS:'snare',KeyD:'mid-tom',KeyF:'crash',Space:'kick'}[e.code];if(id){e.preventDefault();try{await enableSound();hit(id)}catch(err){status(err.message)}}});
+window.addEventListener('keydown',async e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||(e.code==='Space'&&e.target.tagName==='BUTTON')||e.ctrlKey||e.metaKey||e.altKey)return;const id={KeyA:'hi-hat',KeyS:'snare',KeyD:'mid-tom',KeyF:'crash',Space:'kick'}[e.code];if(id){e.preventDefault();try{await enableSound();hit(id)}catch(err){status(err.message)}}});
 function render(points,zones){const r=$('zones').getBoundingClientRect();if(canvas.width!==Math.round(r.width)||canvas.height!==Math.round(r.height)){canvas.width=Math.round(r.width);canvas.height=Math.round(r.height);}pen.clearRect(0,0,canvas.width,canvas.height);pen.lineWidth=2;
  for(const z of zones){pen.strokeStyle='#225ce0';pen.fillStyle='#225ce020';pen.beginPath();pen.ellipse(z.x*canvas.width,z.y*canvas.height,z.width*canvas.width*detector.radiusScale/2,z.height*canvas.height*detector.radiusScale/2,0,0,Math.PI*2);pen.fill();pen.stroke();}
  for(const p of points){pen.fillStyle=p.color||(p.id==='cyan'?'#6affff':'#ff8bd9');pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,p.radius||8,0,Math.PI*2);pen.fill();}
@@ -72,7 +74,7 @@ function frame(now){if(!running)return;const v=$('video');
  points=selection.strikePoints;displayed=selection.overlayPoints;guidePoints=displayed;
  const inferenceMs=performance.now()-inferenceStart;
  const zones=studio.getLayout();
- if(studio.getMode()==='play'){for(const h of detector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else detector.reset();
+ if(studio.getMode()==='play'){for(const h of detector.update(points,zones,now))hit(h.drum,h.velocity,h.source,'camera')}else detector.reset();
  render(displayed,zones);
  if(selection)window.dispatchEvent(new CustomEvent('hands-detected',{detail:selection}));
  statsFrames++;statsInference+=inferenceMs;
@@ -134,3 +136,5 @@ $('record').onclick=async()=>{if(!recording){try{await enableSound()}catch(e){st
 $('download').onclick=()=>{const blob=new Blob([JSON.stringify({tempoBpm:tempo,hits:session},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='air-drum-session.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 window.addEventListener('pagehide',()=>{stop();stopMetro()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();stopMetro();status('Paused while this tab is hidden. Start tracking to resume.')}});
+
+window.airDrumStudio.getTrackingState=()=>({running,input:$('inputMode').value});
