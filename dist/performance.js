@@ -44,7 +44,7 @@ panel.innerHTML = `
 <p id="inputHelp">Wrap one tip in bright pink / magenta tape and the other in cyan. Good light, plain background. Tip dots should follow the pencil ends.</p>
 <button id="trackToggle" class="reset">Start pencil tracking</button>
 <div id="trackingStatus" role="status">Sound and pencil tracking are off.</div>
-<div id="markerSettings"><button id="selectTips" class="reset">Select / reset tips</button><p>Click each pink or cyan taped tip in the camera image. Click Done selecting before playing. If a tip is lost, select it again.</p></div><label>Hitbox radius <input id="hitRadius" type="range" min="3" max="40" value="12"><output id="radiusValue">12 px</output></label>
+<div id="markerSettings"><button id="selectTips" class="reset">Select / reset tips</button><p>Click the end of each pencil you want to use in the camera image. Click Done selecting before playing. If a tip is lost, select it again.</p></div><label>Hitbox radius <input id="hitRadius" type="range" min="3" max="40" value="12"><output id="radiusValue">12 px</output></label>
 <label>Sensitivity <input id="sensitivity" type="range" min="10" max="100" value="72"></label>
 <label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
 <div id="backendSettings" hidden>
@@ -211,7 +211,7 @@ function frame(now) {
         detector.reset();
       }
       status(
-        points.length
+        selecting ? `Select pencil ends in the camera · ${points.length} locked · click Done selecting when ready` : points.length
           ? `${points.length} tip${points.length > 1 ? 's' : ''} · ${
               studio.getMode() === 'play'
                 ? 'strike down through a gold line · bounce/lift to roll'
@@ -303,7 +303,7 @@ function backend() {
 
 function helpFor(mode) {
   if (mode === 'yellow') {
-    return 'Use two classic yellow/orange pencils. Bright light, plain background. Tip dots track the graphite/eraser ends.';
+    return 'Use a yellow/orange pencil with its shaft visible. Start tracking and click the end you want to use, then Done selecting. Avoid covering most of the yellow shaft with your hand.';
   }
   if (mode === 'backend') {
     return 'Your backend supplies drum hits; this mode does not run camera tracking or send video.';
@@ -331,6 +331,8 @@ $('trackToggle').onclick = async () => {
       if (!$('video').srcObject) throw Error('Enable the camera first.');
       pencils.setMode(mode === 'yellow' ? 'yellow' : 'neon');
       running = true;
+      woodSlot = 0;
+      selectMode(true);
       raf = requestAnimationFrame(frame);
     }
     $('trackToggle').textContent = 'Stop pencil tracking';

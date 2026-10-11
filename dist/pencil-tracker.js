@@ -64,9 +64,10 @@
       }
       const shafts = this.#blobs(wood, 40, 9000);
       const tips = [];
-      for (let i = 0; i < shafts.length; i++) {
-        const tip = this.#shaftTip(shafts[i], data);
-        if (tip) tips.push({ id: 'wood', n: shafts[i].n, x: 1 - tip.x / W, y: tip.y / H, confidence: tip.confidence });
+      for (const shaft of shafts) {
+        for (const tip of this.#shaftEnds(shaft)) {
+          tips.push({id:'wood',n:shaft.n,x:1-tip.x/W,y:tip.y/H,confidence:.7});
+        }
       }
       return tips;
     }
@@ -83,20 +84,6 @@
     #isYellowWood(r, g, b) {
       // Classic yellow/orange pencil paint under common webcam white balance.
       return r > 145 && g > 105 && b < 125 && r > b * 1.35 && g > b * 1.05 && Math.abs(r - g) < 95;
-    }
-
-    #bestTipBlob(mask, minN, maxN) {
-      let best = null;
-      for (const blob of this.#blobs(mask, minN, maxN)) {
-        if (!best || blob.n > best.n) best = blob;
-      }
-      if (!best) return null;
-      // Tip = bottommost extremity (striking end), not the blob centroid.
-      return {
-        x: best.tipX,
-        y: best.tipY,
-        confidence: Math.min(1, best.n / 120),
-      };
     }
 
     #blobs(mask, minN, maxN) {
@@ -143,93 +130,27 @@
         const height = maxY - minY + 1;
         // Prefer stick-like shapes over floor blobs / clothing patches.
         const elongated = Math.max(height / width, width / height) >= 2.5;
-        if (this.mode === 'yellow' && !elongated) continue;
+
         out.push({ n, cx: sx / n, cy: sy / n, tipX, tipY, minX, maxX, minY, maxY, pixels: q });
       }
       return out;
     }
 
-    #shaftTip(blob, data) {
-      // Walk the major axis of the yellow shaft and pick the darker / lower end as the tip.
-      const pts = blob.pixels;
-      let bestDark = null;
-      let bestDarkScore = Infinity;
-      let lowest = null;
-      for (const at of pts) {
-        const x = at % W;
-        const y = (at / W) | 0;
-        // Sample a small neighborhood just beyond the wood for graphite / tip.
-        for (const [dx, dy] of [[0, 2], [0, 3], [0, 4], [-1, 3], [1, 3]]) {
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-          const o = (ny * W + nx) * 4;
-          const r = data[o];
-          const g = data[o + 1];
-          const b = data[o + 2];
-          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          const chroma = Math.max(r, g, b) - Math.min(r, g, b);
-          // Graphite tip: dark + low chroma. Also allow pink eraser tips.
-          const eraser = r > 150 && g > 90 && b > 90 && r > g && Math.abs(g - b) < 40;
-          if (lum < 85 && chroma < 45) {
-            const score = lum - ny * 0.15;
-            if (score < bestDarkScore) {
-              bestDarkScore = score;
-              bestDark = { x: nx, y: ny, confidence: Math.min(1, (90 - lum) / 70) };
-            }
-          } else if (eraser) {
-            const score = 40 - ny * 0.15;
-            if (score < bestDarkScore) {
-              bestDarkScore = score;
-              bestDark = { x: nx, y: ny, confidence: 0.7 };
-            }
-          }
-        }
-        if (!lowest || y > lowest.y) lowest = { x, y, confidence: 0.45 };
-      }
-      return bestDark || lowest;
+    #shaftEnds(blob) {
+      // Principal axis follows diagonal shafts as well as vertical/horizontal ones.
+      let xx=0, yy=0, xy=0;
+      for(const at of blob.pixels){const x=at%W-blob.cx,y=Math.floor(at/W)-blob.cy;xx+=x*x;yy+=y*y;xy+=x*y;}
+      xx/=blob.n;yy/=blob.n;xy/=blob.n;
+      const spread=Math.hypot(xx-yy,2*xy),major=(xx+yy+spread)/2,minor=(xx+yy-spread)/2;
+      if(major<20 || major/Math.max(1,minor)<12) return [];
+      const angle=.5*Math.atan2(2*xy,xx-yy),ux=Math.cos(angle),uy=Math.sin(angle);
+      let lo=Infinity,hi=-Infinity;
+      const projected=blob.pixels.map(at=>{const x=at%W,y=Math.floor(at/W),t=(x-blob.cx)*ux+(y-blob.cy)*uy;lo=Math.min(lo,t);hi=Math.max(hi,t);return{x,y,t};});
+      // Average the terminal slice so a single jagged pixel cannot move the cursor.
+      const band=Math.max(1,(hi-lo)*.04);
+      return [lo,hi].map(end=>{const points=projected.filter(p=>Math.abs(p.t-end)<=band);return{x:points.reduce((a,p)=>a+p.x,0)/points.length,y:points.reduce((a,p)=>a+p.y,0)/points.length};});
     }
 
-    #stabilize(points) {
-      const now = performance.now();
-      const matched = [];
-      const used = new Set();
-      for (const p of points) {
-        let prev = this.prev.get(p.id);
-        if (!prev) {
-          // Steal nearest previous tip of any id within a short distance (id swap safety).
-          let nearest = null;
-          let nearestD = 0.08;
-          for (const [id, s] of this.prev) {
-            if (used.has(id)) continue;
-            const d = Math.hypot(p.x - s.x, p.y - s.y);
-            if (d < nearestD) {
-              nearestD = d;
-              nearest = s;
-            }
-          }
-          prev = nearest;
-        }
-        let x = p.x;
-        let y = p.y;
-        if (prev && now - prev.t < 120) {
-          const speed = Math.hypot(p.x - prev.x, p.y - prev.y);
-          // Fast strokes stay snappy; slow motion gets light smoothing.
-          const a = speed > 0.045 ? 0.85 : 0.55;
-          x = prev.x + (p.x - prev.x) * a;
-          y = prev.y + (p.y - prev.y) * a;
-        }
-        const vx = prev ? (x - prev.x) / Math.max(0.001, (now - prev.t) / 1000) : 0;
-        const vy = prev ? (y - prev.y) / Math.max(0.001, (now - prev.t) / 1000) : 0;
-        matched.push({ id: p.id, x, y, confidence: p.confidence, vx, vy });
-        used.add(p.id);
-        this.prev.set(p.id, { x, y, t: now, vx, vy });
-      }
-      for (const [id, s] of this.prev) {
-        if (now - s.t > 220) this.prev.delete(id);
-      }
-      return matched;
-    }
   }
 
   if (typeof module !== 'undefined' && module.exports) module.exports = PencilTracker;
