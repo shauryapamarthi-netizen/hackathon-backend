@@ -66,10 +66,10 @@ test('ten seconds without a match times out; one matched hand resets the timer',
 test('selected hand points reach the drum detector as one contact, not five hits', () => {
   const input = ready();
   const detector = new Detector();
-  const zones = [{ id: 'snare', x: 0.7, y: 0.4, width: 0.12, height: 0.12 }];
+  const zones = [{ id: 'snare', x: 0.8, y: 0.5, width: 0.12, height: 0.12 }];
   detector.update(input.update(result(), 820).strikePoints, zones, 820);
   const entering = result();
-  entering.landmarks[0].forEach(point => { point.x = 0.26; });
+  entering.landmarks[0].forEach(point => { point.y = 0.46; });
   const hits = detector.update(input.update(entering, 870).strikePoints, zones, 870);
   assert.equal(hits.length, 1);
   assert.equal(hits[0].drum, 'snare');

@@ -25,7 +25,9 @@ function buildDrum(d){
  const bottom=document.createElement('span');bottom.className='bottom-hoop';body.appendChild(bottom);
  for(let i=0;i<8;i++){const rod=document.createElement('span');rod.className='tension-rod';const a=i*Math.PI/4;rod.style.left=(50+46*Math.cos(a))+'%';rod.style.top=(50+46*Math.sin(a))+'%';body.appendChild(rod)}
 }
-wrap.appendChild(body);
+const stand=document.createElement('span');stand.className='drum-stand';
+stand.innerHTML='<span class="stand-post"></span><span class="stand-collar"></span><span class="stand-leg leg-left"></span><span class="stand-leg leg-right"></span><span class="stand-leg leg-back"></span>'+(cymbal?'':'<span class="stand-cradle"></span>')+(d.id==='hi-hat'?'<span class="stand-pedal"></span>':'');
+wrap.appendChild(stand);wrap.appendChild(body);
 if(d.id==='hi-hat'){const rod=document.createElement('span');rod.className='hihat-shaft';wrap.appendChild(rod)}$(d.id).prepend(wrap);$(d.id).classList.add('visual-zone');$(d.id).style.setProperty('--piece-scale',d.scale);$(d.id).style.zIndex=String(d.id==='bass'?1:Math.round(d.y*10)+2);
 }
 layout.forEach(buildDrum);

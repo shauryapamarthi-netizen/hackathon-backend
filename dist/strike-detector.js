@@ -63,12 +63,13 @@
               exit = Math.min(1, (-b + root) / (2 * a));
               if (enter > exit) continue;
             }
+            const fromAbove = !held && c > 0 && dy > 0 && dy >= Math.abs(dx) * 0.5 && before.y + enter * dy <= -0.25;
             const name = point.name || point.id.split(':').pop();
             if (!point.handId || name === 'palm') {
-              if (!held) crossing = true;
+              if (fromAbove) crossing = true;
             } else if (['pointer','middle','pinky','thumb'].includes(name)) {
-              fingerIntervals.push({ time: previous.time + enter * dt, delta: 1, fresh: held ? 0 : 1 });
-              fingerIntervals.push({ time: previous.time + exit * dt, delta: -1, fresh: held ? 0 : -1 });
+              fingerIntervals.push({ time: previous.time + enter * dt, delta: 1, fresh: fromAbove ? 1 : 0 });
+              fingerIntervals.push({ time: previous.time + exit * dt, delta: -1, fresh: fromAbove ? -1 : 0 });
             }
             const speed = Math.hypot(point.x - previous.x, point.y - previous.y) * 1000 / dt;
             velocity = Math.max(velocity, Math.min(1, Math.max(0.25, speed / 2)));

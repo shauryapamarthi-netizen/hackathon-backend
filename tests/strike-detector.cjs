@@ -2,15 +2,16 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const Detector = require('../dist/strike-detector.js');
 const zone = { id: 'snare', x: 0.5, y: 0.5, width: 0.2, height: 0.2 };
-const point = (x, y, name = 'pointer', handId = 'hand-1') => ({ id: `${handId}:${name}`, handId, x, y });
+const point = (height, across, name = 'pointer', handId = 'hand-1') => ({ id: `${handId}:${name}`, handId, x: across, y: height });
 const nodes = (x, y, handId = 'hand-1') => ['palm'].map(name => point(x, y, name, handId));
 function detector() { const d = new Detector(); d.radiusScale = 1; return d; }
 
-test('touching the radius from any direction triggers, including slow side entry', () => {
-  for (const [a, b] of [[[0.3, 0.5], [0.45, 0.5]], [[0.5, 0.7], [0.5, 0.55]], [[0.7, 0.5], [0.55, 0.5]]]) {
-    const d = detector();
-    d.update(nodes(...a), [zone], 0);
-    assert.equal(d.update(nodes(...b), [zone], 150).length, 1);
+test('downward entry from above plays but side and upward entry stay silent', () => {
+  for (const [start,end,expected] of [[{x:.5,y:.3},{x:.5,y:.5},1],[{x:.3,y:.5},{x:.5,y:.5},0],[{x:.5,y:.7},{x:.5,y:.5},0]]) {
+    const d=detector();
+    const node=p=>({...p,id:'hand-1:palm',handId:'hand-1',name:'palm'});
+    d.update([node(start)],[zone],0);
+    assert.equal(d.update([node(end)],[zone],50).length,expected);
   }
 });
 
@@ -113,8 +114,8 @@ test('default hit radius matches drum bounds', () => {
 test('tilted drum ellipse rejects points above the flattened head', () => {
   const tilted = { ...zone, height: 0.08 };
   const d = detector();
-  d.update(nodes(0.2, 0.56), [tilted], 0);
-  assert.equal(d.update(nodes(0.5, 0.56), [tilted], 50).length, 0);
+  d.update(nodes(0.2, 0.5), [tilted], 0);
+  assert.equal(d.update(nodes(0.44, 0.5), [tilted], 50).length, 0);
   assert.equal(d.update(nodes(0.5, 0.5), [tilted], 100).length, 1);
 });
 
@@ -155,7 +156,7 @@ test('three fast finger crossings must overlap in time', () => {
 
 test('colored stick marker still triggers on one point', () => {
   const d=detector();
-  d.update([{id:'pink',x:0.3,y:0.5}],[zone],0);
+  d.update([{id:'pink',x:0.5,y:0.3}],[zone],0);
   assert.equal(d.update([{id:'pink',x:0.5,y:0.5}],[zone],50).length,1);
 });
 
@@ -179,4 +180,12 @@ test('repeat guard permits a fresh strike exactly 100 ms later', () => {
   assert.equal(d.update(nodes(0.5,0.5),[zone],20).length,1);
   d.update(nodes(0.3,0.5),[zone],100);
   assert.equal(d.update(nodes(0.5,0.5),[zone],120).length,1);
+});
+
+test('an upward return after a full downward crossing stays silent', () => {
+ const d=detector();
+ d.update(nodes(.2,.5),[zone],0);
+ assert.equal(d.update(nodes(.8,.5),[zone],50).length,1);
+ assert.equal(d.update(nodes(.2,.5),[zone],160).length,0);
+ assert.equal(d.update(nodes(.8,.5),[zone],210).length,1);
 });
