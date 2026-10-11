@@ -95,7 +95,30 @@
 
   loadNextExercise();
 
-  appendMessage('assistant', "Hi! I'm your drum coach. Ask me how to hold a steady beat, which drum to hit first, or how to warm up — and I'll chime in on my own after each practice round.");
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  if (fullscreenBtn) {
+    function isFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+    function updateFullscreenLabel() {
+      fullscreenBtn.textContent = isFullscreen() ? '⤡ Exit full screen' : '⛶ Full screen';
+    }
+    fullscreenBtn.addEventListener('click', () => {
+      const root = document.documentElement;
+      if (!isFullscreen()) {
+        const request = root.requestFullscreen || root.webkitRequestFullscreen;
+        if (request) request.call(root);
+      } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document);
+      }
+    });
+    document.addEventListener('fullscreenchange', updateFullscreenLabel);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenLabel);
+    updateFullscreenLabel();
+  }
+
+  appendMessage('assistant', "Hi! I'm your drum coach. Ask me how to hold a steady beat, which drum to hit first, how to warm up, or say \"teach me a song\" for a pattern to practice — and I'll chime in on my own after each practice round.");
 
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
