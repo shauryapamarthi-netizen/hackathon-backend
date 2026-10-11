@@ -1,0 +1,28 @@
+{
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/exercises",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/next-exercise",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/attempts",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/chat",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/train-feedback",
+      "destination": "/api/index"
+    }
+  ]
+}
