@@ -1,6 +1,17 @@
+// Module scope (studio.html loads this as type="module") so we don't clash with app.js's `$`.
 const $ = (id) => document.getElementById(id);
 const studio = window.airDrumStudio;
 const audio = window.drumAudio;
+if (!studio || !audio || !window.StrikeDetector || !window.PencilTracker) {
+  const aside = document.querySelector('aside');
+  if (aside) {
+    const err = document.createElement('p');
+    err.style.cssText = 'color:#f4d196;margin-top:16px';
+    err.textContent = 'Pencil tracking failed to load. Hard-refresh (⌘⇧R) or re-upload strike-detector.js + pencil-tracker.js.';
+    aside.append(err);
+  }
+  throw new Error('Missing air-drum dependencies');
+}
 const detector = new window.StrikeDetector();
 const pencils = new window.PencilTracker();
 
