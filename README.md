@@ -73,9 +73,3 @@ window.dispatchEvent(new CustomEvent('drum-hit', {
 ## Tests
 
 `npm test` runs the audio buffer/overlap checks in `tests/`.
-
-
-## Select pencil tips and set the hitbox radius
-Start pencil tracking, choose **Select / reset tips**, and click each visible pencil tip in the camera image. Click **Done selecting**, then play. Lost or ambiguous tips require selection again; background color blobs are never acquired automatically. Pink/cyan tape is recommended; yellow-pencil mode is still a color/shape heuristic, not general object recognition.
-
-The **Hitbox radius** slider controls a visible circle and the actual swept collision against the strike line, in display pixels. Existing coach, calibration, backend and practice controls are preserved. Automated checks cover selection, distractors, lost tracking and radius collisions; real-camera testing remains necessary.
