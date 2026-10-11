@@ -79,6 +79,37 @@ import './performance.js';
     }
   }
 
+  const levelBadge = document.createElement('div');
+  levelBadge.id = 'levelBadge';
+  levelBadge.className = 'level-badge';
+  if (banner) banner.insertAdjacentElement('beforebegin', levelBadge);
+
+  const levelUpToast = document.createElement('div');
+  levelUpToast.id = 'levelUpToast';
+  levelUpToast.className = 'level-up-toast';
+  levelUpToast.hidden = true;
+  document.body.appendChild(levelUpToast);
+  let toastTimer = null;
+
+  function renderLevelBadge(weakestSkill, level) {
+    if (!levelBadge || !level) return;
+    const label = (SKILL_LABELS[weakestSkill] || weakestSkill).toUpperCase();
+    const pct = (level.progress / level.repsPerLevel) * 100;
+    const isMax = level.level >= level.maxLevel;
+    levelBadge.innerHTML = `<div class="level-badge-top"><span>LEVEL ${level.level} &middot; ${label}</span><span>${isMax ? 'MAX' : `${level.progress}/${level.repsPerLevel}`}</span></div><div class="level-track"><div class="level-fill" style="width:${isMax ? 100 : pct}%"></div></div>`;
+  }
+
+  function showLevelUpToast(skillKey, newLevel) {
+    const label = SKILL_LABELS[skillKey] || skillKey;
+    levelUpToast.textContent = `🎉 Level ${newLevel} unlocked — ${label}!`;
+    levelUpToast.hidden = false;
+    levelUpToast.classList.remove('pop');
+    void levelUpToast.offsetWidth;
+    levelUpToast.classList.add('pop');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { levelUpToast.hidden = true; }, 3200);
+  }
+
   async function loadNextExercise(feedbackText) {
     try {
       const res = await fetch(`/next-exercise?userId=${userId}`);
@@ -88,6 +119,7 @@ import './performance.js';
       lastCoachContext = { weakestSkill: data.weakestSkill, skillAverages: data.skillAverages };
       renderBanner(data, feedbackText);
       renderInsightSkills(data.skillAverages);
+      renderLevelBadge(data.weakestSkill, data.level);
       refreshInsightsTop();
       if (bpmInput && currentExercise.tempoBpm) {
         bpmInput.value = currentExercise.tempoBpm;
@@ -100,6 +132,7 @@ import './performance.js';
   async function submitAttempt(rhythmAccuracy) {
     if (!currentExercise) return;
     try {
+      const skillKey = currentExercise.targetSkill;
       const res = await fetch('/attempts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,6 +145,7 @@ import './performance.js';
       });
       const data = await res.json();
       appendMessage('assistant', data.feedback);
+      if (data.leveledUp) showLevelUpToast(skillKey, data.level.level);
       await loadNextExercise(data.feedback);
     } catch (err) {
       console.error('Could not submit attempt', err);
@@ -224,6 +258,20 @@ import './performance.js';
     });
   }
 
+  const STREAK_COMMENTS = [
+    "You're on fire! 🔥 Keep that pocket locked in.",
+    "Nailing it — this is what consistent timing feels like.",
+    "Smooth and steady. That's the sound of real progress.",
+    "Your timing is tightening up nicely, keep going!"
+  ];
+  const STRUGGLE_COMMENTS = [
+    "No worries, timing takes reps. Slow the tempo down a notch and try again.",
+    "Close! Try counting out loud with the click to re-sync.",
+    "Everyone drifts off-beat sometimes — reset and focus on the very next hit.",
+    "Take a breath, drop the tempo 10 BPM, and lock back in."
+  ];
+  let commentPoolIndex = 0;
+
   function setupLiveFeedback() {
     const audio = window.drumAudio;
     const studio = window.airDrumStudio;
@@ -231,6 +279,7 @@ import './performance.js';
 
     const ON_BEAT_MS = 40;
     const CLOSE_MS = 90;
+    const COMMENT_EVERY = 6;
 
     const liveEl = document.createElement('div');
     liveEl.id = 'liveFeedback';
@@ -251,6 +300,8 @@ import './performance.js';
     };
 
     let hitStreak = 0;
+    let hitsSinceComment = 0;
+    let goodSinceComment = 0;
     const originalHit = studio.hit.bind(studio);
     studio.hit = (name, velocity) => {
       const played = originalHit(name, velocity);
@@ -265,6 +316,7 @@ import './performance.js';
       const beatsSinceTick = (now - lastTickWhen) / tickPeriod;
       const offsetMs = (beatsSinceTick - Math.round(beatsSinceTick)) * tickPeriod * 1000;
       const absMs = Math.abs(offsetMs);
+      const wasGood = absMs < CLOSE_MS;
 
       let text;
       if (absMs < ON_BEAT_MS) {
@@ -279,6 +331,17 @@ import './performance.js';
       }
       if (hitStreak >= 5) text += ` (${hitStreak} in a row!)`;
       liveEl.textContent = text;
+
+      hitsSinceComment++;
+      if (wasGood) goodSinceComment++;
+      if (hitsSinceComment >= COMMENT_EVERY) {
+        const pool = goodSinceComment / hitsSinceComment >= 0.6 ? STREAK_COMMENTS : STRUGGLE_COMMENTS;
+        appendMessage('assistant', pool[commentPoolIndex % pool.length]);
+        commentPoolIndex++;
+        hitsSinceComment = 0;
+        goodSinceComment = 0;
+      }
+
       return played;
     };
   }

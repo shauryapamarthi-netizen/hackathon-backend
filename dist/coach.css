@@ -147,3 +147,11 @@ footer{color:#848494}
 
 .live-feedback{background:#1f1f23;border:1px solid #2d2d35;border-left:3px solid #9147ff;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#efeff1;transition:background .15s ease}
 
+.level-badge{background:#1f1f23;border:1px solid #2d2d35;border-radius:6px;padding:10px 14px;margin-bottom:16px}
+.level-badge-top{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;color:#bf94ff;font-weight:700;margin-bottom:8px}
+.level-track{height:8px;background:#2d2d35;border-radius:4px;overflow:hidden}
+.level-fill{height:100%;background:linear-gradient(90deg,#772ce8,#9147ff);border-radius:4px;transition:width .4s ease}
+
+.level-up-toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-20px);background:#9147ff;color:#fff;font-weight:700;font-size:14px;padding:14px 22px;border-radius:8px;box-shadow:0 10px 30px -8px #000a;z-index:1000;opacity:0;transition:opacity .25s ease,transform .25s ease}
+.level-up-toast.pop{opacity:1;transform:translateX(-50%) translateY(0)}
+
