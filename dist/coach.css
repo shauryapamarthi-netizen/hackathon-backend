@@ -50,3 +50,24 @@ html:fullscreen,html:-webkit-full-screen{background:#111414}
 html:fullscreen body,html:-webkit-full-screen body{overflow-y:auto;height:auto;min-height:100%}
 html:fullscreen main,html:-webkit-full-screen main{min-height:100vh}
 
+.getting-started{background:#1d251f;border:1px solid #475447;border-radius:10px;padding:16px 18px;margin-bottom:18px}
+.getting-started h3{margin:0 0 12px;font-size:11px;letter-spacing:1.8px;color:#ecc58f;font-weight:600}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+.step{display:flex;align-items:center;gap:10px;font-size:12px;color:#8c9a90;transition:color .2s ease}
+.step-num{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:#2a302c;color:#8c9a90;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:background .2s ease,color .2s ease,box-shadow .2s ease}
+.step.active{color:#ecece6}
+.step.active .step-num{background:#dbbd88;color:#252a21;box-shadow:0 0 0 3px #dbbd8833}
+.step.done{color:#9ecb8a}
+.step.done .step-num{background:#9ecb8a;color:#132015}
+.step.done .step-num .num-digit{display:none}
+.step.done .step-num .num-check{display:inline}
+.step-num .num-check{display:none}
+
+/* Button polish */
+.primary,.reset,.text-button,.test-pads button,.preset-apply,.chat-form button{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+.primary:hover,.preset-apply:hover,.chat-form button:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 4px 14px #0004}
+.reset:hover,.text-button:hover,.test-pads button:hover{transform:translateY(-1px);border-color:#596149}
+.primary:active,.reset:active,.test-pads button:active,.preset-apply:active,.chat-form button:active{transform:translateY(0)}
+.modes button{transition:background .15s ease,color .15s ease}
+.zone{transition:box-shadow .15s ease}
+

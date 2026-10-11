@@ -95,6 +95,38 @@
 
   loadNextExercise();
 
+  function setupGettingStarted() {
+    const ids = ['step-camera', 'step-play', 'step-sound', 'step-hit'];
+    const steps = ids.map((id) => document.getElementById(id));
+    if (steps.some((s) => !s)) return;
+
+    function updateActive() {
+      const firstNotDone = steps.find((s) => !s.classList.contains('done'));
+      steps.forEach((s) => s.classList.remove('active'));
+      if (firstNotDone) firstNotDone.classList.add('active');
+    }
+
+    function markDone(step) {
+      if (!step || step.classList.contains('done')) return;
+      step.classList.add('done');
+      updateActive();
+    }
+
+    function watchText(el, test, onMatch) {
+      if (!el) return;
+      const check = () => { if (test(el.textContent)) onMatch(); };
+      check();
+      new MutationObserver(check).observe(el, { childList: true, characterData: true, subtree: true });
+    }
+
+    updateActive();
+    watchText(document.getElementById('cameraStatus'), (t) => /live/i.test(t), () => markDone(steps[0]));
+    watchText(document.getElementById('modeCaption'), (t) => /play/i.test(t), () => markDone(steps[1]));
+    watchText(document.getElementById('soundOn'), (t) => /enabled/i.test(t), () => markDone(steps[2]));
+    watchText(document.getElementById('hitCount'), (t) => !/^0 hits/.test(t), () => markDone(steps[3]));
+  }
+  setupGettingStarted();
+
   const fullscreenBtn = document.getElementById('fullscreenBtn');
   if (fullscreenBtn) {
     function isFullscreen() {
