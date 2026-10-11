@@ -1,130 +1,98 @@
-(() => {
-  // Index fingertip per hand (MediaPipe hand landmark 8). MediaPipe is capped
-  // at 2 hands, so at most one tracked tap-point per hand, two at a time.
-  const FINGER_TIP_LANDMARK = 8;
-  const TAP_VELOCITY_THRESHOLD = 0.018; // normalized units per ms of downward motion
-  const TAP_COOLDOWN_MS = 180;
-  const HISTORY_SIZE = 4;
-
-  const video = document.getElementById('video');
-  const statusEl = document.getElementById('handTrackingStatus');
-  const studio = window.airDrumStudio;
-  if (!video || !studio) return;
-
-  function setStatus(text) {
-    if (statusEl) statusEl.textContent = text;
-  }
-
-  if (typeof Hands === 'undefined') {
-    setStatus('◈ Hand tracking unavailable (tracking model failed to load — check your internet connection)');
-    console.warn('MediaPipe Hands did not load; falling back to click/keyboard drum controls only.');
-    return;
-  }
-
-  setStatus('◈ Hand tracking: enable your camera to start');
-
-  const hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-  });
-  hands.setOptions({
-    maxNumHands: 2,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.5
-  });
-
-  const handState = {};
-
-  function getZoneAt(nx, ny) {
-    const layout = studio.getLayout();
-    for (const zone of layout) {
-      const rx = zone.width / 2;
-      const ry = zone.height / 2;
-      if (!rx || !ry) continue;
-      const dx = (nx - zone.x) / rx;
-      const dy = (ny - zone.y) / ry;
-      if (dx * dx + dy * dy <= 1) return zone.id;
+/* Coordinates are normalized to the mirrored, uncropped camera image. */
+(function (root) {
+  class StrikeDetector {
+    constructor() {
+      this.tracks = new Map();
+      this.threshold = 0.28; // normalized units / second
+      this.cooldownMs = 38; // allows rapid rolls / 16ths
+      this.maxFrameGapMs = 140;
+      this.lineBias = 0.15; // strike line = zone.y - height * lineBias
     }
-    return null;
-  }
 
-  let modelReady = false;
-
-  hands.onResults((results) => {
-    if (!modelReady) {
-      modelReady = true;
-      setStatus('◈ Hand tracking ready — point an index finger and tap a drum');
+    reset() {
+      this.tracks.clear();
     }
-    if (studio.getMode() !== 'play') return;
 
-    const seenLabels = new Set();
-    const handedness = results.multiHandedness || [];
-    const landmarksList = results.multiHandLandmarks || [];
+    update(points, zones, time) {
+      const hits = [];
+      const present = new Set();
 
-    for (let i = 0; i < landmarksList.length; i++) {
-      const label = (handedness[i] && handedness[i].label) || `hand${i}`;
-      seenLabels.add(label);
+      for (const p of points) {
+        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+        present.add(p.id);
 
-      const tip = landmarksList[i][FINGER_TIP_LANDMARK];
-      const nx = 1 - tip.x; // the video is mirrored for display; flip to match drum-zone coordinates
-      const ny = tip.y;
-      const now = performance.now();
+        let s = this.tracks.get(p.id);
+        if (!s || time - s.time > this.maxFrameGapMs) {
+          s = {
+            x: p.x,
+            y: p.y,
+            time,
+            armed: new Set(),
+            lastHit: -Infinity,
+            vy: 0,
+          };
+          this.tracks.set(p.id, s);
+        }
 
-      const state = handState[label] || (handState[label] = { history: [], lastTapAt: 0 });
-      state.history.push({ y: ny, t: now });
-      if (state.history.length > HISTORY_SIZE) state.history.shift();
+        const dt = (time - s.time) / 1000;
+        const vy = dt > 0 ? (p.y - s.y) / dt : p.vy || 0;
+        s.vy = Number.isFinite(vy) ? vy : 0;
 
-      if (state.history.length === HISTORY_SIZE) {
-        const first = state.history[0];
-        const last = state.history[state.history.length - 1];
-        const dt = last.t - first.t;
-        if (dt > 0) {
-          const velocity = (last.y - first.y) / dt;
-          if (velocity > TAP_VELOCITY_THRESHOLD && now - state.lastTapAt > TAP_COOLDOWN_MS) {
-            const zoneId = getZoneAt(nx, ny);
-            if (zoneId) {
-              const strength = Math.max(0.3, Math.min(1, velocity * 25));
-              studio.hit(zoneId, strength);
-            }
-            state.lastTapAt = now;
+        for (const z of zones) {
+          const line = z.y - z.height * this.lineBias;
+          const half = z.width * 0.52;
+          const nearX = Math.abs(p.x - z.x) <= half || Math.abs(s.x - z.x) <= half;
+
+          // Lift above the line OR bounce (upward velocity) re-arms for rolls.
+          if (p.y < line - 0.012) s.armed.add(z.id);
+          else if (s.vy < -0.55 && nearX && time - s.lastHit > 18) s.armed.add(z.id);
+
+          if (dt <= 0 || dt > 0.16 || time - s.lastHit < this.cooldownMs || !s.armed.has(z.id)) continue;
+
+          const dy = p.y - s.y;
+          if (dy <= 0) continue;
+
+          const speed = dy / dt;
+          if (speed < this.threshold) continue;
+
+          // Interpolated line crossing between previous and current sample.
+          const alpha = (line - s.y) / dy;
+          const crossX = s.x + (p.x - s.x) * alpha;
+          const crossed = alpha >= 0 && alpha <= 1 && Math.abs(crossX - z.x) <= half;
+
+          // Predictive: tip is just above the line, accelerating downward hard.
+          const predictive =
+            s.y < line && p.y >= line - 0.02 && speed >= this.threshold * 1.35 && Math.abs(p.x - z.x) <= half;
+
+          // Roll / bounce: tip never cleared the line, but rebounded then drove back into the pad.
+          const roll =
+            nearX &&
+            p.y >= line &&
+            p.y <= z.y + z.height * 0.4 &&
+            s.y < p.y &&
+            s.y <= line + 0.06;
+
+          if (crossed || predictive || roll) {
+            const velocity = Math.min(1, Math.max(0.18, speed / 2.1));
+            hits.push({ drum: z.id, velocity, source: p.id });
+            s.armed.delete(z.id);
+            s.lastHit = time;
+            break;
           }
         }
+
+        s.x = p.x;
+        s.y = p.y;
+        s.time = time;
       }
-    }
 
-    Object.keys(handState).forEach((label) => {
-      if (!seenLabels.has(label)) delete handState[label];
-    });
-  });
-
-  let rafId = null;
-
-  async function frameLoop() {
-    if (video.readyState >= 2) {
-      try {
-        await hands.send({ image: video });
-      } catch (err) {
-        console.error('Hand tracking frame error', err);
+      for (const [id, s] of this.tracks) {
+        if (!present.has(id) && time - s.time > this.maxFrameGapMs) this.tracks.delete(id);
       }
+      return hits;
     }
-    rafId = requestAnimationFrame(frameLoop);
   }
 
-  function startTracking() {
-    if (rafId != null) return;
-    setStatus('◈ Hand tracking: loading model…');
-    frameLoop();
-  }
-
-  function stopTracking() {
-    if (rafId != null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-    modelReady = false;
-    setStatus('◈ Hand tracking off (camera disabled)');
-  }
-
-  video.addEventListener('loadedmetadata', startTracking);
-  video.addEventListener('emptied', stopTracking);
-})();
+  if (typeof module !== 'undefined' && module.exports) module.exports = StrikeDetector;
+  else root.StrikeDetector = StrikeDetector;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
