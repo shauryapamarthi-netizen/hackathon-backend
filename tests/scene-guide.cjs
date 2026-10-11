@@ -2,11 +2,11 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { perspectiveScale, analyzeRoom, cameraAdvice } = require('../dist/scene-guide.js');
 
-test('bottom-center drums grow while distant and side drums shrink symmetrically', () => {
-  assert.ok(perspectiveScale(0.5, 0.9) > perspectiveScale(0.5, 0.2));
+test('top-center drums grow while distant and side drums shrink symmetrically', () => {
+  assert.ok(perspectiveScale(0.5, 0.2) > perspectiveScale(0.5, 0.9));
   assert.ok(perspectiveScale(0.5, 0.9) > perspectiveScale(0.1, 0.9));
   assert.equal(perspectiveScale(0.1, 0.7), perspectiveScale(0.9, 0.7));
-  assert.ok(perspectiveScale(0.5, 1) <= 1.5);
+  assert.ok(perspectiveScale(0.5, 0) <= 1.5);
 });
 
 test('room analysis reports darkness without inventing an angle', () => {

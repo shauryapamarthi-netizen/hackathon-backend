@@ -21,16 +21,16 @@ selected hands. Use Set up hands again to deliberately select new hands.
 
 Each hand shows palm center, pinky tip, middle-finger tip, pointer fingertip,
 and thumb tip. One matching point inside the frame can preserve selection.
-At least three distinct points from the same hand must touch the glowing
+At least two distinct points from the same hand must touch the glowing
 circular or elliptical drum area at the same time to play it. Contacts from multiple points of one hand are
 combined into one sound per drum. Move all points clear of that area before
 touching it again. Fast segments that cross the entire area between frames
-count only if three contact intervals overlap in time. One or two points,
+count only if two contact intervals overlap in time. One point,
 or points combined from different hands, do not trigger a hand strike. A new or reacquired point already inside an area does not
 produce a phantom strike; move out and back in to play it.
 
 The Hit area slider sets the visible and detected radius together, from
-100% to 180% of the drum bounds (125% by default). This is the projected
+80% to 125% of the drum bounds (100% by default, matching the drum image bounds). This is the projected
 hit area around the 3D-looking drum, not measured physical depth.
 
 One selected hand keeps tracking alive. If neither selected hand matches for
@@ -61,8 +61,8 @@ moving the camera farther away when hand points approach the image edges.
 These are framing heuristics, not room recognition, floor-plane mapping, or
 an estimate of physical camera pitch. No image is uploaded.
 
-Drums use a bounded perspective scale based on screen position: lower and
-central drums look nearer and larger, while higher or side drums shrink.
+Drums use a bounded perspective scale based on screen position: higher and
+central drums look nearer and larger, while lower or side drums shrink.
 The existing relative sizes of the instruments remain applied. Dragging,
 resizing, and preset changes update their measured bounds, so hit areas stay
 aligned with the resized drums. This creates visual depth, not reconstructed
@@ -73,7 +73,7 @@ room geometry.
 1. Click **Enable sound**. Test each of the instrument buttons. A/S/D/F and Space also play hi-hat/snare/tom/crash/kick when focus is not in a form control or button.
 2. Enable the camera. Leave **Hands** selected and click **Start tracking**. The MediaPipe model downloads on first use; allow a little time. A clear failure message leaves manual drum buttons available if download or initialization fails.
 3. In Arrange mode, drag the drums to comfortable positions. Keep the fingertip cursors visible, with room above every drum.
-4. Select **Play**. Move at least three tracked points from the same hand into a glowing drum area together, from any direction. Move clear before touching it again. Holding points inside does not repeatedly trigger it.
+4. Select **Play**. Move at least two tracked points from the same hand into a glowing drum area together, from any direction. Move clear before touching it again. Holding points inside does not repeatedly trigger it.
 5. Increase **Hit area** if the targets feel too small. Use speakers or wired headphones when assessing latency.
 
 For sticks/pencils: select **Sticks · pink + cyan tips**. Wrap one tip in bright magenta/pink tape and the other in cyan tape (one unique color per stick). Use good lighting and a plain background without either color. The marker should appear at least five pixels wide in the small detection image. This mode detects colored blobs; it does not recognize arbitrary unmarked pencils. Position the camera so strokes visibly travel down the image. Pink and cyan cursors mark detected tips.
@@ -102,7 +102,7 @@ If your teammate runs a local or remote tracking service, have it expose a WebSo
 
 Canonical drum IDs: `snare`, `hi-hat`, `mid-tom`, `crash`, `kick`. `velocity` is a finite number in [0,1]. `eventId` is optional and deduplicated over the last 1,000 events. One event per strike. The receiver accepts common hihat/tom/bass aliases. Select Backend, enter the endpoint, click Start tracking, and select Play. HTTPS pages require a `wss://` endpoint. Connections are explicit; on disconnection the user can reconnect with Start tracking.
 
-The client does not upload video to this endpoint, nor automatically synchronize drum layouts. A server-side camera tracker must receive or configure the same layout. In the browser, `window.airDrumStudio.getLayout()` returns each zone's mirrored normalized center and width/height; the hit area is centered on `x,y`, with radii `width * radiusScale / 2` and `height * radiusScale / 2` (default radiusScale 1.25). Backend video capture and transport must be implemented separately if that architecture is required.
+The client does not upload video to this endpoint, nor automatically synchronize drum layouts. A server-side camera tracker must receive or configure the same layout. In the browser, `window.airDrumStudio.getLayout()` returns each zone's mirrored normalized center and width/height; the hit area is centered on `x,y`, with radii `width * radiusScale / 2` and `height * radiusScale / 2` (default radiusScale 1). Backend video capture and transport must be implemented separately if that architecture is required.
 
 ## Hosted/local use
 
@@ -118,7 +118,7 @@ The client does not upload video to this endpoint, nor automatically synchronize
 npm test
 ```
 
-Automated detector checks cover contact from any direction, simultaneous three-point contact, deduplication, boundary jitter, simultaneous hands, out-of-zone motion, reacquisition, radius scaling, and fast crossings. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
+Automated detector checks cover contact from any direction, simultaneous two-point contact, deduplication, boundary jitter, simultaneous hands, out-of-zone motion, reacquisition, radius scaling, and fast crossings. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
 
 A headless Chromium smoke check verified that the studio loads its five-point tracking controls and overlay. Model execution, real camera tracking, audible output and end-to-end latency have **not** been verified here. No latency number or competition outcome is guaranteed. Before presenting, run the steps above on the actual laptop, test both hands and colored tips, and adjust placement/sensitivity. A real-camera test remains essential.
 

@@ -3,7 +3,7 @@
     constructor() {
       this.tracks = new Map();
       this.contacts = new Map();
-      this.radiusScale = 1.25;
+      this.radiusScale = 1;
     }
 
     reset() {
@@ -42,7 +42,7 @@
           let velocity = 0;
           let firstSeenInside = 0;
           const intervals = [];
-          const required = nodes.some(point => point.handId) ? 3 : 1;
+          const required = nodes.some(point => point.handId) ? 2 : 1;
           for (const point of nodes) {
             const current = normalized(point);
             const inside = current.x * current.x + current.y * current.y <= 1;

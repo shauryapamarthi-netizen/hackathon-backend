@@ -1,6 +1,6 @@
 (function(root) {
   function perspectiveScale(x, y) {
-    const depth = Math.max(0, Math.min(1, y));
+    const depth = 1 - Math.max(0, Math.min(1, y));
     const center = Math.max(0, 1 - Math.abs(x - 0.5) * 2);
     return (0.7 / (1 - 0.5 * depth)) * (0.85 + 0.15 * center);
   }

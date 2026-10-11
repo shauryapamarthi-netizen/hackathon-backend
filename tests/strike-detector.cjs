@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const Detector = require('../dist/strike-detector.js');
 const zone = { id: 'snare', x: 0.5, y: 0.5, width: 0.2, height: 0.2 };
 const point = (x, y, name = 'pointer', handId = 'hand-1') => ({ id: `${handId}:${name}`, handId, x, y });
-const nodes = (x, y, handId = 'hand-1') => ['pinky','middle','thumb'].map(name => point(x, y, name, handId));
+const nodes = (x, y, handId = 'hand-1') => ['middle','thumb'].map(name => point(x, y, name, handId));
 function detector() { const d = new Detector(); d.radiusScale = 1; return d; }
 
 test('touching the radius from any direction triggers, including slow side entry', () => {
@@ -78,32 +78,34 @@ test('radius size changes both collision coverage and invalid inputs are ignored
   assert.deepEqual(d.update([point(NaN, 0.5)], [zone], 100), []);
 });
 
-test('two points cannot trigger and points from different hands are not combined', () => {
+test('points from different hands are not combined', () => {
   const d = detector();
-  const input = x => [point(x, 0.5), point(x, 0.5, 'pinky'), point(x, 0.5, 'thumb', 'hand-2')];
+  const input = x => [point(x, 0.5), point(x, 0.5, 'thumb', 'hand-2')];
   d.update(input(0.3), [zone], 0);
   assert.equal(d.update(input(0.5), [zone], 50).length, 0);
 });
 
-test('two points resting inside plus a third entering trigger once', () => {
+test('one point resting inside plus a second entering triggers once', () => {
   const d = detector();
-  d.update([point(0.5, 0.5), point(0.5, 0.5, 'pinky'), point(0.3, 0.5, 'thumb')], [zone], 0);
-  assert.equal(d.update(nodes(0.5, 0.5), [zone], 50).length, 0);
-  d.reset();
-  const input = x => [point(0.5, 0.5, 'pinky'), point(0.5, 0.5, 'middle'), point(x, 0.5, 'thumb')];
+  const input = x => [point(0.5, 0.5, 'middle'), point(x, 0.5, 'thumb')];
   d.update(input(0.3), [zone], 0);
   assert.equal(d.update(input(0.5), [zone], 50).length, 1);
+  assert.equal(d.update(input(0.5), [zone], 150).length, 0);
 });
 
-test('three swept paths must touch at the same time, not sequentially within a frame', () => {
+test('two swept paths must touch at the same time, not sequentially within a frame', () => {
   const d = detector();
-  const names = ['pinky', 'middle', 'thumb'];
-  d.update([0.39,0.1,-0.3].map((x,i)=>point(x,0.5,names[i])), [zone], 0);
-  assert.equal(d.update([1.39,1.1,0.7].map((x,i)=>point(x,0.5,names[i])), [zone], 50).length, 0);
+  const names = ['middle', 'thumb'];
+  d.update([0.39,-0.3].map((x,i)=>point(x,0.5,names[i])), [zone], 0);
+  assert.equal(d.update([1.39,0.7].map((x,i)=>point(x,0.5,names[i])), [zone], 50).length, 0);
 });
 
-test('duplicate point IDs do not satisfy the three point requirement', () => {
+test('duplicate point IDs do not satisfy the two point requirement', () => {
   const d = detector();
   d.update(Array(3).fill(point(0.3, 0.5)), [zone], 0);
   assert.equal(d.update(Array(3).fill(point(0.5, 0.5)), [zone], 50).length, 0);
+});
+
+test('default hit radius matches drum bounds', () => {
+  assert.equal(new Detector().radiusScale, 1);
 });
