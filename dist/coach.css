@@ -71,45 +71,53 @@ html:fullscreen main,html:-webkit-full-screen main{min-height:100vh}
 .modes button{transition:background .15s ease,color .15s ease}
 .zone{transition:box-shadow .15s ease}
 
-/* Vivid color system: layered aurora background, each panel gets its own hue */
+/* Vivid color system v2: saturated aurora background + frosted glass cards so color shows through everywhere */
+html{background:#070512}
 body{
   background:
-    radial-gradient(1000px 560px at 10% -8%, #ff7a5938 0%, transparent 62%),
-    radial-gradient(1000px 620px at 92% 6%, #35d0c042 0%, transparent 60%),
-    radial-gradient(1300px 820px at 50% 108%, #8b5cf638 0%, transparent 62%),
-    linear-gradient(180deg,#160c2c 0%,#100a22 55%,#0a0716 100%) fixed;
-  background-color:#0a0716;
+    radial-gradient(760px 560px at 6% -4%, #ff6a46 0%, transparent 58%),
+    radial-gradient(820px 620px at 96% 10%, #22d3c4 0%, transparent 58%),
+    radial-gradient(900px 700px at 46% 104%, #7c4dff 0%, transparent 58%),
+    radial-gradient(620px 480px at 68% 46%, #ff4fa3 0%, transparent 54%),
+    linear-gradient(180deg,#130824 0%,#0c0618 60%,#070512 100%) fixed;
+  background-color:#070512;
 }
-header{background:linear-gradient(90deg,#1a1230cc,#150c28cc);backdrop-filter:blur(6px);border-bottom:1px solid #3a2a5c}
+header{background:linear-gradient(90deg,#1a1230aa,#150c28aa);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%);border-bottom:1px solid #6d4fc455}
 .eyebrow{color:#ff9d7a}
-h1{background:linear-gradient(100deg,#ffb199,#ff8fc2 45%,#a992ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1{background:linear-gradient(100deg,#ffb199,#ff6fa8 45%,#a992ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
 
-.camera-panel,.chat-panel,.stage-column aside,.coach-banner,.getting-started{border-radius:18px;background-color:#170f2a}
+.camera-panel,.chat-panel,.stage-column aside,.coach-banner,.getting-started{
+  border-radius:18px;
+  background:rgba(23,15,42,.52);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border-top-width:3px;border-top-style:solid;
+}
 .panel-top,.camera-bottom{border-radius:inherit}
 
-.camera-panel{border:1px solid #2f6e6a66;box-shadow:0 18px 46px -20px #35d0c04d,0 2px 0 #ffffff08 inset}
-.stage{background:radial-gradient(ellipse at 50% 42%,#1d3833 0%,#15241f 45%,#0e1613 100%)}
+.camera-panel{border:1px solid #2f6e6a66;border-top-color:#22d3c4;box-shadow:0 20px 50px -18px #22d3c460,0 2px 0 #ffffff10 inset}
+.stage{background:radial-gradient(ellipse at 50% 38%,#2a1f4a 0%,#1a1030 50%,#0d0818 100%)}
 
-.stage-column aside{border:1px solid #5a3fa155;box-shadow:0 18px 46px -22px #8b5cf64d}
+.stage-column aside{border:1px solid #5a3fa155;border-top-color:#a992ff;box-shadow:0 20px 50px -20px #a992ff5c}
 
-.getting-started{background:linear-gradient(160deg,#241a42,#1a1332);border:1px solid #6d4fc455;box-shadow:0 14px 34px -18px #8b5cf655}
+.getting-started{background:rgba(36,26,66,.55);border:1px solid #6d4fc455;border-top-color:#a992ff;box-shadow:0 16px 38px -16px #a992ff66}
 .getting-started h3{color:#c9b6ff}
 .step.active{color:#f3eeff}
-.step.active .step-num{background:linear-gradient(135deg,#a992ff,#35d0c0);color:#120a26;box-shadow:0 0 0 4px #a992ff33}
-.step.done .step-num{background:linear-gradient(135deg,#7adfc0,#35d0c0);color:#0c1f1b}
+.step.active .step-num{background:linear-gradient(135deg,#a992ff,#22d3c4);color:#120a26;box-shadow:0 0 0 4px #a992ff33}
+.step.done .step-num{background:linear-gradient(135deg,#7adfc0,#22d3c4);color:#0c1f1b}
 
-.coach-banner{background:linear-gradient(160deg,#3a1f2e,#2a1626);border:1px solid #d1527a55;box-shadow:0 14px 34px -18px #ff6f9140}
+.coach-banner{background:rgba(58,31,46,.55);border:1px solid #d1527a55;border-top-color:#ff6fa8;box-shadow:0 16px 38px -16px #ff6fa860}
 .coach-banner strong{color:#ff9fc0}
 .coach-banner .coach-feedback{border-top-color:#d1527a44;color:#f2d9e3}
 
-.chat-panel{background:linear-gradient(165deg,#1c1333,#160f28);border:1px solid #4f3fa166;box-shadow:0 18px 46px -20px #a992ff4d}
+.chat-panel{background:rgba(28,19,51,.5);border:1px solid #4f3fa166;border-top-color:#ff6fa8;box-shadow:0 20px 50px -18px #ff6fa85c}
 .chat-panel h2{background:linear-gradient(100deg,#ff9fc0,#a992ff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .chat-messages{scrollbar-color:#6d4fc4 transparent}
-.chat-msg.assistant{background:#241a3d;border:1px solid #4f3fa166;color:#e9e3ff}
-.chat-msg.user{background:linear-gradient(135deg,#ff6f9140,#a992ff40);border:1px solid #ff9fc044;color:#fff0f6}
-.chat-form input{background:#140d26;border-color:#4f3fa166}
+.chat-msg.assistant{background:#241a3d99;border:1px solid #4f3fa166;color:#e9e3ff}
+.chat-msg.user{background:linear-gradient(135deg,#ff6f9155,#a992ff55);border:1px solid #ff9fc044;color:#fff0f6}
+.chat-form input{background:#140d26aa;border-color:#4f3fa166}
 .chat-form input:focus{outline:2px solid #a992ff55;outline-offset:1px}
-.chat-form button{background:linear-gradient(135deg,#35d0c0,#a992ff);color:#0c1326;box-shadow:0 3px 16px -4px #35d0c066}
+.chat-form button{background:linear-gradient(135deg,#22d3c4,#a992ff);color:#0c1326;box-shadow:0 3px 16px -4px #22d3c466}
 
 .primary{background:linear-gradient(135deg,#ff9d7a,#ff6fa8);color:#2a0b16;box-shadow:0 3px 16px -4px #ff6fa866}
 #fullscreenBtn{background:linear-gradient(135deg,#4f3fa1,#2f6e6a);color:#f3eeff;border-color:#6d4fc455}
