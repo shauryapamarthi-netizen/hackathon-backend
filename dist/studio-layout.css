@@ -1,0 +1,42 @@
+
+.brand-mark{display:block;width:40px;height:40px;flex-shrink:0}
+.brand,.wordmark{display:inline-flex;align-items:center;gap:10px}
+.studio-refresh .workspace{grid-template-columns:minmax(0,1fr) 340px;align-items:start;gap:24px}
+.studio-refresh .intro{margin-bottom:24px}
+.studio-refresh .intro h1{font-size:36px}
+.studio-refresh aside{display:flex;flex-direction:column;gap:16px;padding:0;background:transparent;border:0;min-width:0}
+.studio-refresh .stage-column>.modes{max-width:320px;margin:0 0 8px}
+.studio-refresh .stage-column>.help{margin:0 0 16px;min-height:0;line-height:1.6;font-size:12px}
+.studio-refresh .stage-column>.camera-panel{margin-top:0}
+.studio-refresh .getting-started,.studio-refresh .studio-section{margin:0;padding:20px;border:1px solid #cddbef;border-radius:12px;background:white;min-width:0}
+.studio-refresh .getting-started h3,.studio-refresh .studio-section>h3{font-size:14px;letter-spacing:0;margin:0 0 12px;color:#183454}
+.studio-refresh .steps{list-style:none!important;padding:0;margin:0;gap:12px}
+.studio-refresh .step::marker{content:''}
+.studio-refresh .step{font-size:12px;display:flex;align-items:center;gap:10px}
+.studio-refresh .section-description{font-size:12px;line-height:1.65;color:#526782;margin:0 0 16px}
+.studio-refresh .studio-section summary{cursor:pointer;font-size:14px;font-weight:600;color:#183454;line-height:1.5}
+.studio-refresh .studio-section[open]>summary{margin-bottom:16px}
+.studio-refresh .studio-section .studio-section{margin-top:14px;padding:14px;background:#f5f8fd}
+.studio-refresh .studio-section label{display:block;font-size:12px;color:#183454;margin:16px 0 8px}
+.studio-refresh .studio-section input,.studio-refresh .studio-section select{display:block;width:100%;margin-top:8px;accent-color:#225ce0;box-sizing:border-box}
+.studio-refresh .studio-section input[type=number],.studio-refresh .studio-section select{padding:10px;border:1px solid #b8cbe7;border-radius:6px;background:white;color:#183454}
+.studio-refresh .studio-section p{font-size:12px;line-height:1.65}
+.studio-refresh .studio-section .reset{margin:8px 0}
+.studio-refresh #trackingStatus{margin-top:8px;min-height:0;padding:10px 12px;background:#edf3fc;border-radius:6px;overflow-wrap:anywhere}
+.studio-refresh .readouts{display:flex;gap:16px;justify-content:space-between;border-top:1px solid #dbe4ef;padding-top:12px;margin:16px 0 8px}
+.studio-refresh #hitCount{font-size:16px;font-weight:600;color:#183454}
+.studio-refresh #lastHit{align-self:center}
+.studio-refresh .test-pads{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.studio-refresh .test-pads button{min-height:40px;font-size:11px}
+.studio-refresh .visual-controls{margin:12px 0;padding:14px}
+.studio-refresh .visual-controls .kit-heading{margin:0 0 14px}
+.studio-refresh .studio-section .kit-heading{grid-column:auto;grid-row:auto}
+.studio-refresh .studio-section .kit{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.studio-refresh .studio-section .kit>div{padding:10px;border-radius:6px;font-size:11px}
+.studio-refresh .chat-panel{min-height:0;padding:24px;border-radius:12px;margin-top:24px}
+.studio-refresh .chat-messages{height:220px;min-height:0}
+.studio-refresh .chat-panel h2{font-size:24px}
+.studio-refresh #insightsPanel{margin-top:16px}
+.studio-refresh [hidden]{display:none!important}
+@media(max-width:1000px){.studio-refresh .workspace{grid-template-columns:minmax(0,1fr) 300px;gap:16px}.studio-refresh .private{display:none}}
+@media(max-width:760px){.studio-refresh .workspace{grid-template-columns:1fr}.studio-refresh aside{display:flex}.studio-refresh .intro h1{font-size:30px}.studio-refresh .stage-column>.modes{max-width:none}.studio-refresh .chat-panel{margin-top:16px}.studio-refresh .studio-section .kit-heading{margin-top:16px}.home-blue .wordmark{font-size:22px}.brand-mark{width:34px;height:34px}}
