@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { createApp } = require('../lib/expressApp');
+const { createApp } = require('../../lib/expressApp');
 
 let appPromise = null;
 
