@@ -1,10 +1,13 @@
+import { HandSession, getHandPoints } from './hand-session.js';
+import { HandInput } from './hand-input.js';
 const $=id=>document.getElementById(id), studio=window.airDrumStudio, audio=window.drumAudio;
+const handInput=new HandInput(new HandSession(),getHandPoints);
 const detector=new window.StrikeDetector();let running=false,landmarker,loading=false,raf=0,lastFrame=-1,socket=null,session=[],sessionStart=0,recording=false,metro=null,nextBeat=0,beat=0,tempo=90;
 const panel=document.createElement('section');panel.className='performance';panel.innerHTML=`
 <h3>PLAY YOUR SPACE</h3><button id="soundOn" class="primary">Enable sound</button>
-<label>Input<select id="inputMode"><option value="hands">Hands · index fingertips</option><option value="markers">Sticks · pink + cyan tips</option><option value="backend">Backend · hit events</option></select></label>
-<p id="inputHelp">Keep both hands visible. Move your index fingertips down across the gold strike lines, then lift to re-arm.</p>
-<button id="trackToggle" class="reset">Start tracking</button><div id="trackingStatus" role="status">Sound and tracking are off.</div>
+<label>Input<select id="inputMode"><option value="hands">Hands · five-point tracking</option><option value="markers">Sticks · pink + cyan tips</option><option value="backend">Backend · hit events</option></select></label>
+<p id="inputHelp">Show both open hands briefly to select them. Five dots follow each hand; index fingertips play the drums. Any one matching point can keep a hand selected.</p>
+<button id="trackToggle" class="reset">Start tracking</button><button id="setupHands" class="reset" disabled>Set up hands again</button><div id="trackingStatus" role="status">Sound and tracking are off.</div>
 <label>Sensitivity <input id="sensitivity" type="range" min="10" max="100" value="65"></label>
 <label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
 <div id="backendSettings" hidden><label>WebSocket URL<input id="wsUrl" placeholder="wss://your-server/ws"></label><p>Connects to an existing backend that sends drum_hit events. No camera frames are uploaded by this client.</p></div>
@@ -32,7 +35,7 @@ for(const z of document.querySelectorAll('.zone'))z.addEventListener('click',asy
 window.addEventListener('keydown',async e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;const id={KeyA:'hi-hat',KeyS:'snare',KeyD:'mid-tom',KeyF:'crash',Space:'kick'}[e.code];if(id){e.preventDefault();try{await enableSound();hit(id)}catch(err){status(err.message)}}});
 function render(points,zones){const r=$('zones').getBoundingClientRect();if(canvas.width!==Math.round(r.width)||canvas.height!==Math.round(r.height)){canvas.width=Math.round(r.width);canvas.height=Math.round(r.height);}pen.clearRect(0,0,canvas.width,canvas.height);pen.lineWidth=2;
  for(const z of zones){pen.strokeStyle='#f4d196';pen.beginPath();pen.moveTo((z.x-z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);pen.lineTo((z.x+z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);pen.stroke();}
- for(const p of points){pen.fillStyle=p.id==='cyan'?'#6affff':'#ff8bd9';pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,8,0,Math.PI*2);pen.fill();}
+ for(const p of points){pen.fillStyle=p.color||(p.id==='cyan'?'#6affff':'#ff8bd9');pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,p.radius||8,0,Math.PI*2);pen.fill();}
 }
 // Find the largest connected color blob for each stick, rather than averaging unrelated pixels.
 const scratch=document.createElement('canvas');scratch.width=320;scratch.height=180;const cx=scratch.getContext('2d',{willReadFrequently:true});
@@ -49,17 +52,35 @@ async function loadHands(){if(landmarker)return;status('Loading hand model… In
  const options={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.5,minHandPresenceConfidence:.5,minTrackingConfidence:.5};
  try{landmarker=await HandLandmarker.createFromOptions(files,options)}catch{options.baseOptions.delegate='CPU';landmarker=await HandLandmarker.createFromOptions(files,options)}
 }
+function scheduleFrame(){const v=$('video');raf=v.requestVideoFrameCallback?v.requestVideoFrameCallback(frame):requestAnimationFrame(frame);}
 function frame(now){if(!running)return;const v=$('video');
  try{if(!v.srcObject||v.readyState<2){stop();status('Camera is off. Enable the camera, then start tracking again.');return;}
- if(v.currentTime!==lastFrame){lastFrame=v.currentTime;let points;
- if($('inputMode').value==='markers')points=markers(v);else{const result=landmarker.detectForVideo(v,now);points=result.landmarks.map((hand,i)=>({id:result.handedness[i]?.[0]?.categoryName||String(i),x:1-hand[8].x,y:hand[8].y}));}
- const zones=studio.getLayout();render(points,zones);
+ if(v.currentTime!==lastFrame){lastFrame=v.currentTime;let points,displayed,selection;
+ if($('inputMode').value==='markers'){points=markers(v);displayed=points;}
+ else{
+  selection=handInput.update(landmarker.detectForVideo(v,now),now);
+  if(selection.timedOut){stop();studio.stopCamera();status('No hands seen for 10 seconds. Enable the camera and start tracking again.');return;}
+  points=selection.strikePoints;displayed=selection.overlayPoints;
+  window.dispatchEvent(new CustomEvent('hands-detected',{detail:selection}));
+ }
+ const zones=studio.getLayout();render(displayed,zones);
  if(studio.getMode()==='play'){for(const h of detector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else detector.reset();
- status(points.length?`${points.length} tracked · ${studio.getMode()==='play'?'strike down through a gold line':'switch to Play when positioned'}`:'No input detected · keep hands or colored tips visible');
- }raf=requestAnimationFrame(frame);
+ status(selection?selection.message:points.length?`${points.length} tracked · ${studio.getMode()==='play'?'strike down through a gold line':'switch to Play when positioned'}`:'No input detected · keep colored tips visible');
+ }scheduleFrame();
  }catch(e){stop();status('Tracking stopped: '+e.message);}
 }
-function stop(){running=false;cancelAnimationFrame(raf);detector.reset();lastFrame=-1;if(socket){socket.onclose=null;socket.close();socket=null;}$('trackToggle').textContent='Start tracking';pen.clearRect(0,0,canvas.width,canvas.height);}
+function stop(){
+ running=false;
+ const v=$('video');if(v.cancelVideoFrameCallback)v.cancelVideoFrameCallback(raf);else cancelAnimationFrame(raf);
+ detector.reset();lastFrame=-1;handInput.reset(performance.now());
+ if(socket){socket.onclose=null;socket.close();socket=null;}
+ landmarker?.close();landmarker=null;
+ $('trackToggle').textContent='Start tracking';$('setupHands').disabled=true;
+ pen.clearRect(0,0,canvas.width,canvas.height);
+ window.dispatchEvent(new CustomEvent('hands-detected',{detail:{hands:[],previewHands:[],state:'stopped',timestampMs:performance.now()}}));
+}
+$('setupHands').onclick=()=>{handInput.reset(performance.now());detector.reset();pen.clearRect(0,0,canvas.width,canvas.height);status('Show both open hands, separated, to select them again.');};
+window.addEventListener('air-drum-camera-stopped',()=>{if(running&&$('inputMode').value!=='backend'){stop();status('Camera stopped. Enable it and start tracking again.');}});
 const aliases={hihat:'hi-hat','hihat-closed':'hi-hat',tom:'mid-tom','tom-low':'mid-tom','tom-high':'mid-tom',bass:'kick'};
 function backend(){const url=new URL($('wsUrl').value);if(!['ws:','wss:'].includes(url.protocol))throw Error('Use a ws:// or wss:// URL.');if(location.protocol==='https:'&&url.protocol!=='wss:')throw Error('A hosted HTTPS page needs a secure wss:// backend.');
  socket=new WebSocket(url);const ws=socket;status('Connecting to backend…');const seen=new Set();
@@ -68,8 +89,8 @@ function backend(){const url=new URL($('wsUrl').value);if(!['ws:','wss:'].includ
  ws.onerror=()=>status('Backend connection failed. Check the URL and server.');ws.onclose=()=>{if(socket===ws){stop();status('Backend disconnected. Start tracking to reconnect.')}};
 }
 $('trackToggle').onclick=async()=>{if(running){stop();status('Tracking stopped.');return}if(loading)return;loading=true;$('trackToggle').disabled=true;$('inputMode').disabled=true;
- try{await enableSound();if($('inputMode').value==='backend'){backend();running=true;}else{if(!$('video').srcObject)throw Error('Enable the camera first.');if($('inputMode').value==='hands')await loadHands();running=true;raf=requestAnimationFrame(frame);}$('trackToggle').textContent='Stop tracking';}catch(e){stop();status(e.message+' You can still test the drum buttons.');}finally{loading=false;$('trackToggle').disabled=false;$('inputMode').disabled=false;}};
-$('inputMode').onchange=()=>{stop();$('backendSettings').hidden=$('inputMode').value!=='backend';$('inputHelp').textContent=$('inputMode').value==='markers'?'Wrap one tip in bright pink tape and the other in cyan tape. Use good light and a plain background without those colors. Markers should appear at least 5 pixels wide.':$('inputMode').value==='hands'?'Keep both hands visible. Move your index fingertips down across the gold strike lines, then lift to re-arm.':'Your backend supplies drum hits; this mode does not run camera tracking or send video.';status('Input changed. Press Start tracking.');};
+ try{await enableSound();if($('inputMode').value==='backend'){backend();running=true;}else{if(!$('video').srcObject)throw Error('Enable the camera first.');if($('inputMode').value==='hands')await loadHands();handInput.reset(performance.now());running=true;scheduleFrame();$('setupHands').disabled=$('inputMode').value!=='hands';}$('trackToggle').textContent='Stop tracking';}catch(e){stop();status(e.message+' You can still test the drum buttons.');}finally{loading=false;$('trackToggle').disabled=false;$('inputMode').disabled=false;}};
+$('inputMode').onchange=()=>{stop();$('backendSettings').hidden=$('inputMode').value!=='backend';$('inputHelp').textContent=$('inputMode').value==='markers'?'Wrap one tip in bright pink tape and the other in cyan tape. Use good light and a plain background without those colors. Markers should appear at least 5 pixels wide.':$('inputMode').value==='hands'?'Show both open hands briefly to select them. Five dots follow each hand; index fingertips play the drums. Any one matching point can keep a hand selected.':'Your backend supplies drum hits; this mode does not run camera tracking or send video.';status('Input changed. Press Start tracking.');};
 $('arrange').addEventListener('click',()=>{detector.reset()});$('play').addEventListener('click',()=>{$('stageHint').textContent='Strike down through a gold line';});
 function stopMetro(){clearInterval(metro);metro=null;$('metro').textContent='Start metronome';}
 $('metro').onclick=async()=>{if(metro){stopMetro();return}try{await enableSound();tempo=Math.max(40,Math.min(220,Number($('bpm').value)||90));$('bpm').value=tempo;nextBeat=audio.context.currentTime+.1;beat=0;const schedule=()=>{while(nextBeat<audio.context.currentTime+.08){audio.tick(nextBeat,beat%4===0);nextBeat+=60/tempo;beat++;}};metro=setInterval(schedule,25);schedule();$('metro').textContent='Stop metronome';}catch(e){status(e.message)}};
@@ -77,5 +98,5 @@ let practiceOrigin=0,practicePeriod=0;
 $('record').onclick=async()=>{if(!recording){try{await enableSound()}catch(e){status(e.message);return}session=[];sessionStart=performance.now();recording=true;practiceOrigin=metro?nextBeat:0;practicePeriod=60/tempo;$('record').textContent='Finish practice';$('bpm').disabled=true;$('metro').disabled=true;$('download').disabled=true;$('feedback').textContent='Recording… Play one hit per metronome click for timing feedback.';}else{recording=false;$('record').textContent='Record practice';$('bpm').disabled=false;$('metro').disabled=false;$('download').disabled=!session.length;let summary=`${session.length} hits in ${((performance.now()-sessionStart)/1000).toFixed(1)} seconds.`;
  if(session.length>=4&&practiceOrigin){const errors=session.map(h=>{const beats=(h.audioTime-practiceOrigin)/practicePeriod;return Math.abs(beats-Math.round(beats))*practicePeriod*1000});const avg=errors.reduce((a,b)=>a+b,0)/errors.length;summary+=` Average distance to the nearest click: ${Math.round(avg)} ms. ${avg<60?'Try keeping that consistency at a slightly faster tempo.':'Slow the tempo and aim for one relaxed stroke per click.'}`;}else summary+=' Record at least four hits with the metronome on for timing feedback.';$('feedback').textContent=summary;}};
 $('download').onclick=()=>{const blob=new Blob([JSON.stringify({tempoBpm:tempo,hits:session},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='air-drum-session.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-window.addEventListener('pagehide',()=>{stop();stopMetro();landmarker?.close()});
+window.addEventListener('pagehide',()=>{stop();stopMetro()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();stopMetro();status('Paused while this tab is hidden. Start tracking to resume.')}});

@@ -24,7 +24,7 @@
     }
     s.x=p.x;s.y=p.y;s.time=time;
    }
-   for(const [id,s] of this.tracks)if(!present.has(id)&&time-s.time>180)this.tracks.delete(id);
+   for(const [id] of this.tracks)if(!present.has(id))this.tracks.delete(id);
    return hits;
   }
  }

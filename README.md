@@ -12,6 +12,37 @@ Open **http://127.0.0.1:4173/studio.html** in Chrome or Edge. The demo server ha
 
 For the existing Express API plus studio, run `npm install`, then `npm start`, and open http://localhost:3000/studio.html. Existing exercise/attempt endpoints are retained. Attempts remain in memory as in the original project; this is not a production storage service.
 
+## Selected hand tracking
+
+The Hands input in `/studio.html` now uses the hand-detection component.
+Enable the camera, click Start tracking, and hold both open hands apart for
+about one second. Yellow dots indicate setup; green and purple identify the
+selected hands. Use Set up hands again to deliberately select new hands.
+
+Each hand shows palm center, pinky tip, middle-finger tip, pointer fingertip,
+and thumb tip. One matching point inside the frame can preserve selection.
+Only the pointer fingertip feeds the existing strike detector, so five
+visible points do not produce duplicate hits. A missing pointer clears its
+strike history immediately to prevent a false hit when it returns.
+
+One selected hand keeps tracking alive. If neither selected hand matches for
+10 continuous seconds, tracking and the camera stop. Enable the camera and
+start tracking again to restart. During setup, any in-frame hand point resets
+the same timeout. Camera capture requests 640x480 at 60 fps, uses available
+GPU acceleration with CPU fallback, and follows new video frames.
+
+Selection uses movement continuity, not personal identity. Keep bystanders
+out of view. In-frame landmarks are model estimates, not proof that a point
+is unoccluded. MediaPipe must still detect a hand; it computes all 21
+landmarks even though only five are drawn.
+
+Integration files: `dist/hand-session.js` manages selection;
+`dist/hand-input.js` adapts model output into mirrored overlay and strike
+coordinates. `performance.js` connects them to the existing audio and layout.
+The browser emits `hands-detected` events with selected hands, timestamps,
+state, overlayPoints and strikePoints. Stop events clear the selected hands.
+No additional server endpoint or npm dependency is required.
+
 ## First successful hit
 
 1. Click **Enable sound**. Test each of the instrument buttons. A/S/D/F and Space also play hi-hat/snare/tom/crash/kick when focus is not in a form control or button.
@@ -28,7 +59,7 @@ For sticks/pencils: select **Sticks · pink + cyan tips**. Wrap one tip in brigh
 - Added a real snare zone to match the original sidebar; tom, hi-hat and crash retained. Kick is manual/keyboard only.
 - Original synthesized snare, kick, tom, hi-hat and crash samples generated once in browser memory. No sample licensing, paid API or per-hit network requests. These are synthesized sounds, not studio recordings.
 - Separate voices for overlapping hits, volume and stroke strength, plus matching drum flashes.
-- Two-hand fingertip tracking with MediaPipe; mirrored normalized coordinates match the camera overlay.
+- Selected-hand tracking with five-point overlays; mirrored normalized coordinates match the camera overlay.
 - Pink/cyan connected-component marker tracking for two sticks.
 - Downward line-crossing detection, interpolation between frames, per-hand cooldown, lift-to-rearm, and reset after tracking loss.
 - Metronome, session event recording, JSON download and measured timing summary. Feedback is a deterministic timing calculation, not an LLM/AI coach. The summary compares each hit to the nearest click; it does not score missing notes or identify the correct instrument.
@@ -64,7 +95,7 @@ npm test
 
 Automated detector checks cover single-hit/rearm, simultaneous hands, slow/out-of-zone motion, lost tracking and fast diagonal crossing. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
 
-A browser executable could not be installed in the build environment, so browser UI, model execution, real camera tracking, audible output and end-to-end latency have **not** been verified here. No latency number or competition outcome is guaranteed. Before presenting, run the steps above on the actual laptop, test both hands and colored tips, and adjust placement/sensitivity. A real-camera test remains essential.
+A headless Chromium smoke check verified that the studio loads its five-point tracking controls and overlay. Model execution, real camera tracking, audible output and end-to-end latency have **not** been verified here. No latency number or competition outcome is guaranteed. Before presenting, run the steps above on the actual laptop, test both hands and colored tips, and adjust placement/sensitivity. A real-camera test remains essential.
 
 ## Main changes
 
@@ -75,4 +106,4 @@ A browser executable could not be installed in the build environment, so browser
 - `server.js`: serves the existing frontend as well as existing API routes.
 - `package.json`: demo/start/test commands.
 
-No changes have been pushed to GitHub and no live deployment has been made.
+This integration does not deploy the website or change the exercise/attempt API.

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "demo": "node start.cjs",
-    "test": "node --test tests/*.cjs"
+    "test": "node --test tests/*.cjs tests/*.mjs"
   },
   "repository": {
     "type": "git",
