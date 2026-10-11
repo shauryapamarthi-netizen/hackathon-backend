@@ -14,3 +14,8 @@
 .tracking-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
 .struck{animation:hit-glow .16s ease-out}
 @keyframes hit-glow{0%{filter:brightness(2.2);box-shadow:0 0 35px #ffd288}100%{filter:brightness(1)}}
+
+
+.camera-coach{padding:12px;margin-bottom:16px;border:1px solid #596d5c;border-radius:8px;background:#15201a}.camera-coach strong{font-size:10px;letter-spacing:1px;color:#b7dbba}.camera-coach p{margin:8px 0;color:#e6eddf}.camera-coach small{font-size:10px;line-height:1.5;color:#95a899}
+
+.performance [hidden]{display:none!important}

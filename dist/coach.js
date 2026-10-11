@@ -1,3 +1,4 @@
+import './performance.js';
 (() => {
   function getUserId() {
     let id = localStorage.getItem('airDrumUserId');

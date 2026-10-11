@@ -1,98 +1,107 @@
-/* Coordinates are normalized to the mirrored, uncropped camera image. */
-(function (root) {
+(function(root) {
   class StrikeDetector {
     constructor() {
       this.tracks = new Map();
-      this.threshold = 0.28; // normalized units / second
-      this.cooldownMs = 38; // allows rapid rolls / 16ths
-      this.maxFrameGapMs = 140;
-      this.lineBias = 0.15; // strike line = zone.y - height * lineBias
+      this.contacts = new Map();
+      this.radiusScale = 1;
+      this.repeatDelayMs = 100;
     }
 
     reset() {
       this.tracks.clear();
+      this.contacts.clear();
     }
 
     update(points, zones, time) {
       const hits = [];
       const present = new Set();
-
-      for (const p of points) {
-        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-        present.add(p.id);
-
-        let s = this.tracks.get(p.id);
-        if (!s || time - s.time > this.maxFrameGapMs) {
-          s = {
-            x: p.x,
-            y: p.y,
-            time,
-            armed: new Set(),
-            lastHit: -Infinity,
-            vy: 0,
-          };
-          this.tracks.set(p.id, s);
-        }
-
-        const dt = (time - s.time) / 1000;
-        const vy = dt > 0 ? (p.y - s.y) / dt : p.vy || 0;
-        s.vy = Number.isFinite(vy) ? vy : 0;
-
-        for (const z of zones) {
-          const line = z.y - z.height * this.lineBias;
-          const half = z.width * 0.52;
-          const nearX = Math.abs(p.x - z.x) <= half || Math.abs(s.x - z.x) <= half;
-
-          // Lift above the line OR bounce (upward velocity) re-arms for rolls.
-          if (p.y < line - 0.012) s.armed.add(z.id);
-          else if (s.vy < -0.55 && nearX && time - s.lastHit > 18) s.armed.add(z.id);
-
-          if (dt <= 0 || dt > 0.16 || time - s.lastHit < this.cooldownMs || !s.armed.has(z.id)) continue;
-
-          const dy = p.y - s.y;
-          if (dy <= 0) continue;
-
-          const speed = dy / dt;
-          if (speed < this.threshold) continue;
-
-          // Interpolated line crossing between previous and current sample.
-          const alpha = (line - s.y) / dy;
-          const crossX = s.x + (p.x - s.x) * alpha;
-          const crossed = alpha >= 0 && alpha <= 1 && Math.abs(crossX - z.x) <= half;
-
-          // Predictive: tip is just above the line, accelerating downward hard.
-          const predictive =
-            s.y < line && p.y >= line - 0.02 && speed >= this.threshold * 1.35 && Math.abs(p.x - z.x) <= half;
-
-          // Roll / bounce: tip never cleared the line, but rebounded then drove back into the pad.
-          const roll =
-            nearX &&
-            p.y >= line &&
-            p.y <= z.y + z.height * 0.4 &&
-            s.y < p.y &&
-            s.y <= line + 0.06;
-
-          if (crossed || predictive || roll) {
-            const velocity = Math.min(1, Math.max(0.18, speed / 2.1));
-            hits.push({ drum: z.id, velocity, source: p.id });
-            s.armed.delete(z.id);
-            s.lastHit = time;
-            break;
-          }
-        }
-
-        s.x = p.x;
-        s.y = p.y;
-        s.time = time;
+      const groups = new Map();
+      for (const point of points) {
+        if (present.has(point.id)) continue;
+        if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) continue;
+        present.add(point.id);
+        const hand = point.handId || point.id;
+        if (!groups.has(hand)) groups.set(hand, []);
+        groups.get(hand).push(point);
       }
 
-      for (const [id, s] of this.tracks) {
-        if (!present.has(id) && time - s.time > this.maxFrameGapMs) this.tracks.delete(id);
+      for (const [hand, nodes] of groups) {
+        for (const zone of zones) {
+          const rx = zone.width * this.radiusScale / 2;
+          const ry = zone.height * this.radiusScale / 2;
+          if (!(rx > 0) || !(ry > 0)) continue;
+          const key = `${hand}/${zone.id}`;
+          const contact = this.contacts.get(key) || { nodes: new Map(), lastHit: -Infinity, lastSeen: time };
+          const normalized = point => ({ x: (point.x - zone.x) / rx, y: (point.y - zone.y) / ry });
+          let velocity = 0;
+          let crossing = false;
+          const fingerIntervals = [];
+          contact.lastSeen = time;
+          for (const point of nodes) {
+            const current = normalized(point);
+            const inside = current.x * current.x + current.y * current.y <= 1;
+            const previous = this.tracks.get(point.id);
+            const dt = previous ? time - previous.time : Infinity;
+            const near = current.x * current.x + current.y * current.y <= 1.12 ** 2;
+            const held = contact.nodes.get(point.id) || false;
+            contact.nodes.set(point.id, near && (held || inside));
+            if (!previous || dt > (previous?.missing ? 80 : 180) || dt <= 0) continue;
+            const before = normalized(previous);
+            const dx = current.x - before.x;
+            const dy = current.y - before.y;
+            const a = dx * dx + dy * dy;
+            const b = 2 * (before.x * dx + before.y * dy);
+            const c = before.x * before.x + before.y * before.y - 1;
+            let enter = 0, exit = 1;
+            if (a < 1e-12) {
+              if (c > 0) continue;
+            } else {
+              const discriminant = b * b - 4 * a * c;
+              if (discriminant < 0) continue;
+              const root = Math.sqrt(discriminant);
+              enter = Math.max(0, (-b - root) / (2 * a));
+              exit = Math.min(1, (-b + root) / (2 * a));
+              if (enter > exit) continue;
+            }
+            const fromAbove = !held && c > 0 && dy > 0 && dy >= Math.abs(dx) * 0.5 && before.y + enter * dy <= -0.25;
+            const name = point.name || point.id.split(':').pop();
+            if (!point.handId || name === 'palm') {
+              if (fromAbove) crossing = true;
+            } else if (['pointer','middle','pinky','thumb'].includes(name)) {
+              fingerIntervals.push({ time: previous.time + enter * dt, delta: 1, fresh: fromAbove ? 1 : 0 });
+              fingerIntervals.push({ time: previous.time + exit * dt, delta: -1, fresh: fromAbove ? -1 : 0 });
+            }
+            const speed = Math.hypot(point.x - previous.x, point.y - previous.y) * 1000 / dt;
+            velocity = Math.max(velocity, Math.min(1, Math.max(0.25, speed / 2)));
+          }
+          fingerIntervals.sort((a,b)=>a.time-b.time || b.delta-a.delta);
+          let touching = 0, entering = 0;
+          for (const event of fingerIntervals) {
+            touching += event.delta;
+            entering += event.fresh;
+            if (touching >= 3 && entering > 0) crossing = true;
+          }
+          if (crossing && time - contact.lastHit >= this.repeatDelayMs) {
+            hits.push({ drum: zone.id, velocity, source: hand });
+            contact.lastHit = time;
+          }
+          this.contacts.set(key, contact);
+        }
+      }
+      for (const nodes of groups.values()) {
+        for (const point of nodes) this.tracks.set(point.id, { ...point, time });
+      }
+      for (const [id, point] of this.tracks) {
+        if (!present.has(id)) point.missing = true;
+        if (time - point.time > 80) this.tracks.delete(id);
+      }
+      for (const [key, contact] of this.contacts) {
+        if (time - contact.lastSeen > Math.max(80, this.repeatDelayMs)) this.contacts.delete(key);
+        else for (const id of contact.nodes.keys()) if (!this.tracks.has(id)) contact.nodes.delete(id);
       }
       return hits;
     }
   }
-
-  if (typeof module !== 'undefined' && module.exports) module.exports = StrikeDetector;
+  if (typeof module !== 'undefined') module.exports = StrikeDetector;
   else root.StrikeDetector = StrikeDetector;
-})(typeof globalThis !== 'undefined' ? globalThis : this);
+})(globalThis);
