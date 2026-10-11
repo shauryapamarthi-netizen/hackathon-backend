@@ -71,3 +71,26 @@ html:fullscreen main,html:-webkit-full-screen main{min-height:100vh}
 .modes button{transition:background .15s ease,color .15s ease}
 .zone{transition:box-shadow .15s ease}
 
+/* Color refresh: richer background, teal accent alongside the existing gold, soft card elevation */
+body{background:radial-gradient(ellipse 1400px 760px at 50% -8%,#1c2b26 0%,#121917 45%,#0a0d0c 100%) fixed;background-color:#0a0d0c}
+.camera-panel,.chat-panel,.stage-column aside,.coach-banner,.getting-started{box-shadow:0 14px 34px -16px #000c;border-radius:16px}
+.panel-top,.camera-bottom{border-radius:inherit}
+
+.getting-started{border-color:#3d5047}
+.getting-started h3{color:#7ecbb3}
+.step.active .step-num{background:#7ecbb3;color:#0d1b16;box-shadow:0 0 0 4px #7ecbb333}
+
+.coach-banner{border-color:#3d5047}
+.coach-banner strong{color:#7ecbb3}
+
+.chat-panel{border-color:#3d5047}
+.chat-panel h2{color:#e7f1ec}
+.chat-messages{scrollbar-color:#3d5047 transparent}
+.chat-msg.assistant{background:#182420;border-color:#30463d}
+.chat-msg.user{background:#273449}
+.chat-form input:focus{outline:2px solid #7ecbb355;outline-offset:1px}
+.chat-form button{background:linear-gradient(135deg,#efcf9a,#cf9f5f);box-shadow:0 3px 14px -4px #c99b5366}
+
+.primary{background:linear-gradient(135deg,#efcf9a,#d7a862)}
+#fullscreenBtn{background:linear-gradient(135deg,#273449,#1f2a3a);color:#e8c185}
+
