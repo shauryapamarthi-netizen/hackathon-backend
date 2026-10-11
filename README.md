@@ -1,225 +1,53 @@
-# Air Drum — camera-to-sound integration
+# Air Drum
 
-## Run the demo (Node.js 20+)
+A browser drum studio with selected-hand tracking, pencil tracking, drumhead hit areas, and an adaptive practice coach.
 
-From this unzipped project folder:
+## Run locally
 
-```sh
-node start.cjs
-```
+For the static studio, run `npm run demo` and open `http://127.0.0.1:4173/studio.html`. This preview needs no npm dependencies. Do not open the HTML using a file URL.
 
-Open **http://127.0.0.1:4173/studio.html** in Chrome or Edge. The demo server has no npm dependencies. Do not open the HTML as a file:// URL.
+For the Express API, database, and studio, run `npm install` followed by `npm start`, then open `http://localhost:3000/studio.html`. Configure `PORT` (default 3000), `MONGODB_URI`, and optionally `ANTHROPIC_API_KEY` in the server environment. The server uses MongoDB for exercises, attempts, and skill history. Without the AI API key it provides built-in coaching responses.
 
-For the existing Express API plus studio, run `npm install`, then `npm start`, and open http://localhost:3000/studio.html. Existing exercise/attempt endpoints are retained. Attempts remain in memory as in the original project; this is not a production storage service.
+The static frontend deployment alone does not host `/chat`, `/attempts`, or `/next-exercise`. Those coach features require the backend at the same origin or configured routing to it. Tracking, local audio, and practice recording work without that backend.
 
-## Selected hand tracking
+## Hands
 
-The Hands input in `/studio.html` now uses the hand-detection component.
-Enable the camera, click Start tracking, and hold both open hands apart for
-about one second. Yellow dots indicate setup; green and purple identify the
-selected hands. Use Set up hands again to deliberately select new hands.
+1. Select **Hands**, enable the camera, and continue past the camera setup screen.
+2. Click **Start tracking**, then hold two open hands apart for about one second. Setup dots are yellow; selected hands are green and purple.
+3. Arrange the drums and choose **Play**. Strike downward from above the drumhead using three distinct fingertip nodes from one hand together, or one palm-center node.
+4. Lift the striking nodes clear before the next hit. Palm and fingertip hits share a 100 ms cooldown per hand and drum. Sideways touches and upward returns stay silent. A blocked hit is not queued for later playback.
 
-Each hand shows palm center, pinky tip, middle-finger tip, pointer fingertip,
-and thumb tip. One matching point inside the frame can preserve selection.
-Three distinct fingertip nodes from the same hand touching the glowing drum area together, or one palm-center node entering it, play a hit. Contacts from multiple points of one hand are combined into one
-sound per drum. Lift the striking point clear before touching it again; a resting palm does not block another fingertip. Only downward entries through the upper drumhead edge count. Side entries and upward returns stay silent. Fast downward segments that cross the area between frames also count. New points already inside do not produce phantom strikes. Gaps up to 80 ms preserve a recent observed trajectory; longer tracking losses require moving out and back in. No hits are generated while points are missing.
+Each hand shows the palm center, pointer, middle, pinky, and thumb tips. A resting palm does not block a separate three-fingertip stroke. Fast downward crossings between frames count; the three finger contact intervals must overlap. Hand selection tolerates fast direction reversals and partial-point visibility. Missing observations alone never trigger sound. Motion history survives gaps up to 80 ms; longer losses require fresh contact. Ten seconds without either selected hand stops the camera and releases the model. **Set up hands again** deliberately selects new hands.
 
-The Hit area slider sets the visible and detected radius together, from
-80% to 125% of the drum bounds (100% by default, matching the visible drumhead bounds). This is the projected
-hit area around the 3D-looking drum, not measured physical depth.
+**Hit area** adjusts the visible and detected ellipse together from 80% to 125%, defaulting to 100% of the rendered drumhead bounds. The ellipse follows the viewing angle, size, and position. Top drums appear larger and lower drums smaller. Chrome stands are decorative and cannot be struck. Top-only strikes use camera-preview coordinates, not measured physical room depth.
 
-One selected hand keeps tracking alive. If neither selected hand matches for
-10 continuous seconds, tracking and the camera stop. Enable the camera and
-start tracking again to restart. During setup, any in-frame hand point resets
-the same timeout. Camera capture requests 640x480 at 60 fps, uses available
-GPU acceleration with CPU fallback, and follows new video frames.
+The camera guide uses local lighting and edge heuristics for framing suggestions. It does not reconstruct the room or upload video. MediaPipe downloads its model on first use and still computes all 21 landmarks; the application uses five points per hand. Session selection is geometric continuity, not biometric identity.
 
-Selection uses movement continuity, not personal identity. Keep bystanders
-out of view. In-frame landmarks are model estimates, not proof that a point
-is unoccluded. MediaPipe must still detect a hand; it computes all 21
-landmarks even though only five are drawn.
+## Pencils
 
-Integration files: `dist/hand-session.js` manages selection;
-`dist/hand-input.js` adapts model output into mirrored overlay and strike
-coordinates. `performance.js` connects them to the existing audio and layout.
-The browser emits `hands-detected` events with selected hands, timestamps,
-state, overlayPoints and strikePoints. Stop events clear the selected hands.
-No additional server endpoint or npm dependency is required.
+1. Choose **Pencils: pink + cyan tips** or **Pencils: yellow wood (#2)**. Use bright lighting and a plain background. Pink/cyan tape is recommended.
+2. Enable the camera and start tracking. Choose **Select / reset tips**, click each visible tip, then choose **Done selecting**. Selection never plays notes. Lost or ambiguous tips need reselection.
+3. Arrange drums so the gold strike lines lie where the tips land, then choose **Play** and strike downward.
+4. **Tip radius** controls each visible and detected tip circle in display pixels. **Pencil sensitivity** controls the minimum downward speed. These are separate from the hand-mode drumhead radius.
 
-## Camera guide and perspective
+Pencil color detection, selection locks, circle collision, and rearming retain the team's pencil implementation. Yellow pencils remain a color/shape heuristic, not general object recognition. Switching inputs stops and resets the previous tracker.
 
-Enable the camera to activate the Camera guide in the sidebar. Twice per
-second it samples a small local preview to assess brightness and a possible
-coherent room edge. It suggests lighting changes and leveling when that edge
-looks tilted. Once hand tracking runs, it also suggests tilting up/down or
-moving the camera farther away when hand points approach the image edges.
-These are framing heuristics, not room recognition, floor-plane mapping, or
-an estimate of physical camera pitch. No image is uploaded.
+## Practice and coaching
 
-Drums use a bounded perspective scale based on screen position: higher and
-central drums look nearer and larger, while lower or side drums shrink.
-The existing relative sizes of the instruments remain applied. Dragging,
-resizing, and preset changes update their measured bounds, so hit areas stay
-aligned with the resized drums. Viewing-angle changes use the transformed drumhead bounds for both the glowing ellipse and collision detection, so tilted heads have flatter hit areas. With 3D drums hidden, hit areas follow the flat pads. This creates visual depth, not reconstructed
-room geometry.
+Enable sound to use the drum buttons or keys A / S / D / F / Space. The browser generates snare, tom, hi-hat, crash, and kick samples once and allows overlapping voices. The metronome, practice recorder, timing summary, and downloadable JSON hit log work locally.
 
-## First successful hit
+The backend chooses the next exercise from the user's weakest skill and records results through `/attempts`. The coach UI loads suggestions from `/next-exercise`, watches completed practice summaries, and uses `/chat` for tutoring. The getting-started checklist and camera calibration are retained. The `/simple` server route provides the team's separate microphone-based practice page.
 
-1. Click **Enable sound**. Test each of the instrument buttons. A/S/D/F and Space also play hi-hat/snare/tom/crash/kick when focus is not in a form control or button.
-2. Enable the camera. Leave **Hands** selected and click **Start tracking**. The MediaPipe model downloads on first use; allow a little time. A clear failure message leaves manual drum buttons available if download or initialization fails.
-3. In Arrange mode, drag the drums to comfortable positions. Keep the fingertip cursors visible, with room above every drum.
-4. Select **Play**. Move three fingertip nodes from one hand together, or one palm-center node, into a glowing drum area, downward from above. Lift the striking finger clear before touching it again. Holding points inside does not repeatedly trigger it.
-5. Increase **Hit area** if the targets feel too small. Use speakers or wired headphones when assessing latency.
+## Integration
 
-For sticks/pencils: select **Sticks · pink + cyan tips**. Wrap one tip in bright magenta/pink tape and the other in cyan tape (one unique color per stick). Use good lighting and a plain background without either color. The marker should appear at least five pixels wide in the small detection image. This mode detects colored blobs; it does not recognize arbitrary unmarked pencils. Position the camera so strokes visibly travel down the image. Pink and cyan cursors mark detected tips.
+`window.airDrumStudio.getLayout()` returns the rendered drumhead centers and dimensions in normalized, mirrored camera coordinates. Hand hit radii are `width * radiusScale / 2` and `height * radiusScale / 2`. `getPadLayout()` supplies the pencil detector's pad geometry; `getMode()` returns arrange/play; `stopCamera()` releases capture.
 
-## Included
+`hand-input.js` connects the selected `HandSession` to named strike points and the overlay. `strike-detector.js` handles the palm/three-fingertip rule. `pencil-tracker.js`, `marker-lock.js`, and `pencil-strike-detector.js` provide the separate pencil pipeline. The `hands-detected` event carries selected hands, preview hands, overlay points, strike points, and a timestamp; stop events clear the selection.
 
-- Existing design, camera preview, draggable saved layout and 3D drum rendering preserved.
-- Added a real snare zone to match the original sidebar; tom, hi-hat and crash retained. Kick is manual/keyboard only.
-- Original synthesized snare, kick, tom, hi-hat and crash samples generated once in browser memory. No sample licensing, paid API or per-hit network requests. These are synthesized sounds, not studio recordings.
-- Separate voices for overlapping hits, volume and stroke strength, plus matching drum flashes.
-- Selected-hand tracking with five-point overlays; mirrored normalized coordinates match the camera overlay.
-- Neon-tip and yellow-pencil tracking, with a dedicated pencil strike detector and sensitivity control.
-- Swept contact detection against the visible hit areas, per-hand/drum contact deduplication, leave-to-rearm, cooldown, and reset after tracking loss.
-- Metronome, session event recording, JSON download and measured timing summary. Feedback is a deterministic timing calculation, not an LLM/AI coach. The summary compares each hit to the nearest click; it does not score missing notes or identify the correct instrument.
-- Explicit WebSocket backend input mode for integration with a separate tracker.
+External integrations can call `window.airDrumStudio.hit('snare', 0.85)` or dispatch a `drum-hit` event with `{drum, velocity}`. Supported drum names are `snare`, `hi-hat`, `mid-tom`, `crash`, and `kick`; aliases such as `hihat` and `bass` are accepted. The call returns false outside Play, before sound is ready, or for invalid input. Backend input also accepts existing WebSocket `drum_hit` messages. Camera video is not sent to these endpoints.
 
-## Backend integration contract
+## Verification and limits
 
-The uploaded Node backend has exercise/attempt routes but **no hand-tracking implementation or WebSocket endpoint**. The new working camera modes process video in the browser, on the player's computer, even when the page is hosted online. This avoids a video round trip for each hit. The Backend input option is a receiver for an existing or future tracking backend; it is not a new hosted vision service.
+`npm test` covers hand selection, timeouts, projected geometry, top-only strikes, the three-fingertip or palm rule, shared cooldowns, short dropouts, pencil locking, pencil-radius collision, and overlapping audio voices. Synthetic tests cover 20 three-fingertip strokes spaced 120 ms apart.
 
-If your teammate runs a local or remote tracking service, have it expose a WebSocket endpoint and send:
-
-```json
-{"type":"drum_hit","drum":"snare","velocity":0.85,"eventId":"unique-hit-123"}
-```
-
-Canonical drum IDs: `snare`, `hi-hat`, `mid-tom`, `crash`, `kick`. `velocity` is a finite number in [0,1]. `eventId` is optional and deduplicated over the last 1,000 events. One event per strike. The receiver accepts common hihat/tom/bass aliases. Select Backend, enter the endpoint, click Start tracking, and select Play. HTTPS pages require a `wss://` endpoint. Connections are explicit; on disconnection the user can reconnect with Start tracking.
-
-The client does not upload video to this endpoint, nor automatically synchronize drum layouts. A server-side camera tracker must receive or configure the same layout. In the browser, `window.airDrumStudio.getLayout()` returns each visible drumhead's mirrored normalized center and projected width/height; the hit area is centered on `x,y`, with radii `width * radiusScale / 2` and `height * radiusScale / 2` (default radiusScale 1). Backend video capture and transport must be implemented separately if that architecture is required.
-
-## Hosted/local use
-
-- `dist/` can be hosted as static files over HTTPS; open `/studio.html`.
-- The local demo command listens only on 127.0.0.1. HTTP camera access is permitted on localhost, not arbitrary LAN IPs. Use HTTPS hosting for teammates using their own devices.
-- Camera and marker frames stay in the browser in the provided implementation. The hand mode downloads executable/model assets from jsDelivr and Google, so internet access is needed unless already cached. For a dependable offline event setup, vendor these assets and change the paths in `performance.js`.
-- Hand model: MediaPipe Tasks Vision 0.10.21, Apache-2.0 library, loaded externally. See https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/web_js and https://github.com/google-ai-edge/mediapipe for usage and licensing.
-- A single webcam provides screen-space strikes, not accurate physical 3D contact or depth. The drums have a 3D appearance; collision detection is in the camera image.
-
-## Validation and demo readiness
-
-```sh
-npm test
-```
-
-Automated detector checks cover contact downward from above, palm contact, simultaneous three-fingertip contact, and flattened ellipses, deduplication, boundary jitter, simultaneous hands, out-of-zone motion, reacquisition, radius scaling, and fast crossings. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
-
-A headless Chromium smoke check verified that the studio loads its five-point tracking controls and overlay. Model execution, real camera tracking, audible output and end-to-end latency have **not** been verified here. No latency number or competition outcome is guaranteed. Before presenting, run the steps above on the actual laptop, test both hands and colored tips, and adjust placement/sensitivity. A real-camera test remains essential.
-
-## Main changes
-
-- `dist/strike-detector.js`: independently testable strike detection.
-- `dist/drum-audio.js`: one-shot audio engine.
-- `dist/performance.js` / `.css`: tracking, controls, backend event receiver and practice tools.
-- `dist/app.js`, `dist/drum-visuals.js`, `dist/studio.html`: integration and snare fix.
-- `server.js`: serves the existing frontend as well as existing API routes.
-- `package.json`: demo/start/test commands.
-
-This integration does not deploy the website or change the exercise/attempt API.
-
-### Fast playing
-
-Each point rearms independently, with one sound per hand/drum per frame and a
-100 ms repeat guard shared by palm and fingertip hits from the same hand on the same drum. A blocked contact is not queued: lift clear and make a fresh contact. Fast hand reversals can match the last observed position
-as well as the predicted position. Sound is scheduled before overlay drawing
-and hit flashes do not force a layout recalculation.
-
-The live readout shows processed tracking frames per second and mean input
-processing time, not end-to-end audio latency. Automated motion tests cover
-20 three-fingertip strokes spaced 120 ms apart, stationary palms, short dropouts and reversals.
-These are synthetic tests, not a claim of professional performance on a webcam.
-Actual capture rate, motion blur, inference and audio hardware still matter.
-
-Drum and cymbal visuals include chrome tripod stands, support collars, rubber
-feet, shell cradles, and a hi-hat pedal. These are decorative; hit detection
-uses only the drumhead. Top-only strikes use screen-space motion, not measured
-physical height or room depth.
-
-## Team coach and pencil integration
-
-# Air Drum - Self-Improving Practice Coach
-
-Play drums with pencil taps or selected-hand tracking, get scored on rhythm, and let an adaptive backend pick what you should practice next based on what's actually helping you improve. Built for a Penn State hackathon.
-
-## What's in this repo
-
-- **`server.js` + `models/` + `lib/` + `config/`** - Express/MongoDB backend. Tracks exercises, attempts, and per-skill history, picks the next exercise based on each user's weakest skill, and uses the Claude API to generate feedback and power an in-app drum-teaching chatbot.
-- **`dist/`** - The Air Drum frontend: camera preview and drum arrangement (`app.js`), synthesized drum audio (`drum-audio.js`), 3D drum visuals (`drum-visuals.js`), pencil-tip color tracking (`pencil-tracker.js`) feeding a generic line-crossing hit detector (`pencil-strike-detector.js`), metronome/recording/practice UI (`performance.js`), a camera-angle calibration helper (`calibration.js`), and the layer that connects the UI to the backend - reporting practice results, loading the next suggested exercise, and running the chat tutor (`coach.js`).
-- **`public/`** - a minimal microphone-based pitch/rhythm test page for other instruments, served at `/simple`.
-
-## Run it
-
-```
-npm install
-npm start
-```
-
-Then open `http://localhost:3000` for the home page, or `http://localhost:3000/studio.html` to go straight into the Air Drum studio (served from `dist/`). `http://localhost:3000/simple` has a plain pitch-practice test page.
-
-You'll need a `.env` file with:
-
-```
-PORT=3000
-MONGODB_URI=<your MongoDB Atlas connection string>
-ANTHROPIC_API_KEY=<optional, enables real AI feedback and chat coaching>
-```
-
-Without `ANTHROPIC_API_KEY`, feedback and chat still work using built-in fallback responses - nothing crashes, you just don't get Claude-generated text.
-
-For a standalone static preview of just the frontend (no backend, no database): `npm run demo`, then open `http://127.0.0.1:4173/studio.html` (not `file://`).
-
-## How the adaptive loop works
-
-1. The frontend asks `/next-exercise?userId=...` for what to practice. The backend looks at the user's skill history, finds their weakest skill, and returns the exercise targeting that skill with the best track record of actually improving players (`avgImprovement`) system-wide.
-2. The user plays along (drum hits via pencil tracking, selected-hand tracking, or keyboard, or sung/played pitch via microphone on the `/simple` page).
-3. The frontend posts the result to `/attempts`. The backend scores improvement versus the user's last attempt on that skill, updates that exercise's system-wide improvement stats, and generates feedback via Claude.
-4. The next `/next-exercise` call picks up the user's updated skill history, closing the loop.
-
-## How to play with pencils
-
-1. **Enable sound** → test pads should click.
-2. **Enable camera**.
-3. Choose input:
-   - **Pencils · pink + cyan tips** (most reliable): wrap one tip in bright magenta/pink tape, the other in cyan. Plain background, bright light.
-   - **Pencils · yellow wood (#2)**: two classic yellow pencils; tips track graphite/eraser ends.
-4. **Start tracking** - colored dots should sit on the **tips**, not the middle of the stick.
-5. **Arrange** drums so gold strike lines sit where your strokes land, with room above to lift.
-6. **Play** → strike **down** through a gold line. For rolls, a small bounce re-arms (you don't need a huge lift every time).
-7. Raise **Sensitivity** if light strokes miss; lower it if you get false hits.
-
-If tips still miss: use a bright desk lamp on the kit area, a plain wall/desk background (no clutter in the tip color you chose), and check whether you're on neon tape or yellow #2 mode. Camera + computer vision stay in the browser; no API key needed for tracking.
-
-## Connect a hand tracker
-
-`strike-detector.js` exposes a generic `StrikeDetector` class that takes normalized tracked points (`{id, x, y}`) and zone layouts and returns hits - it doesn't care whether those points come from pencil tips or hand landmarks. A hand-tracking teammate can feed points into the same detector, or call the existing integration point directly:
-
-```js
-window.airDrumStudio.hit('snare', 0.85);
-```
-
-Drum IDs: `snare`, `hi-hat`, `mid-tom`, `crash`, `kick`. Velocity is a finite number from 0 to 1. Returns true when played; false if audio isn't ready, Arrange mode is active, or input is invalid.
-
-Alternatively:
-
-```js
-window.dispatchEvent(new CustomEvent('drum-hit', {
-  detail: { drum: 'snare', velocity: 0.85 }
-}));
-```
-
-`window.airDrumStudio.getLayout()` provides normalized mirrored camera-image drum coordinates and dimensions; `getMode()` gives arrange/play. The existing `#video` element provides the camera preview.
-
-## Tests
-
-`npm test` runs the audio buffer/overlap checks in `tests/`.
+The live readout reports processed tracking frames per second and average input processing time, not end-to-end audio latency. Sound is scheduled before drawing the overlay. Browser integration checks use simulated hand and pencil observations; real-camera motion blur, inference performance, audible output, and latency must still be checked on the demo laptop.

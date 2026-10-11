@@ -11,6 +11,7 @@ const panel=document.createElement('section');panel.className='performance';pane
 <p id="inputHelp">Show both open hands briefly to select them. Strike downward from above the drumhead with three fingertip dots together or one palm dot. Lift the striking dots clear before touching again. Each hand has a 0.1-second repeat guard per drum.</p>
 <button id="trackToggle" class="reset">Start tracking</button><button id="setupHands" class="reset" disabled>Set up hands again</button><div id="trackingStatus" role="status">Sound and tracking are off.</div>
 <label id="handRadiusControl">Hit area <output id="radiusValue">100%</output><input id="sensitivity" type="range" min="80" max="125" value="100"></label>
+<div id="markerSettings" hidden><button id="selectTips" class="reset">Select / reset tips</button><p>Click each visible pencil tip, then choose Done selecting. Select a tip again if tracking is lost.</p><label>Tip radius <input id="hitRadius" type="range" min="3" max="40" value="12"><output id="tipRadiusValue">12 px</output></label></div>
 <label id="pencilSensitivityControl" hidden>Pencil sensitivity <input id="pencilSensitivity" type="range" min="10" max="100" value="72"></label>
 <label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
 <div id="backendSettings" hidden><label>WebSocket URL<input id="wsUrl" placeholder="wss://your-server/ws"></label><p>Connects to an existing backend that sends drum_hit events. No camera frames are uploaded by this client.</p></div>
@@ -21,6 +22,18 @@ const panel=document.createElement('section');panel.className='performance';pane
 document.querySelector('aside').append(panel);
 document.querySelector('.backend').textContent='Local sound engine · no API key';
 const canvas=document.createElement('canvas');canvas.className='tracking-overlay';$('zones').append(canvas);const pen=canvas.getContext('2d');
+let selecting=false,woodSlot=0;
+const markerLock=pencils.lock;
+function selectMode(on){selecting=on;canvas.style.pointerEvents=on?'auto':'none';canvas.style.cursor=on?'crosshair':'';$('selectTips').textContent=on?'Done selecting':'Select / reset tips';pencilDetector.reset();}
+$('selectTips').onclick=()=>{if(!running||!isPencil()){status('Start pencil tracking first.');return;}if(!selecting){markerLock.reset();woodSlot=0;}selectMode(!selecting);};
+$('hitRadius').oninput=()=>{$('tipRadiusValue').textContent=$('hitRadius').value+' px';pencilDetector.reset();};
+canvas.onpointerdown=e=>{
+ if(!selecting)return;
+ e.preventDefault();e.stopPropagation();
+ const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+ const near=pencils.candidates.map(p=>({...p,d:Math.hypot((p.x-x)*r.width,(p.y-y)*r.height)})).filter(p=>p.d<24).sort((a,b)=>a.d-b.d);
+ if(near.length){const p=near[0];for(const [id,prev]of markerLock.tracks)if(Math.hypot(prev.x-p.x,prev.y-p.y)<.04)markerLock.tracks.delete(id);markerLock.select(p.id==='wood'?(woodSlot++%2?'right':'left'):p.id,p,performance.now());status('Tip selected. Select the other tip or choose Done selecting.');}
+};
 let hits=0;
 const flashes=new Map();
 let statsSince=0,statsFrames=0,statsInference=0;
@@ -58,7 +71,7 @@ for(const z of document.querySelectorAll('.zone'))z.addEventListener('click',asy
 window.addEventListener('keydown',async e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;const id={KeyA:'hi-hat',KeyS:'snare',KeyD:'mid-tom',KeyF:'crash',Space:'kick'}[e.code];if(id){e.preventDefault();try{await enableSound();hit(id)}catch(err){status(err.message)}}});
 function render(points,zones){const r=$('zones').getBoundingClientRect();if(canvas.width!==Math.round(r.width)||canvas.height!==Math.round(r.height)){canvas.width=Math.round(r.width);canvas.height=Math.round(r.height);}pen.clearRect(0,0,canvas.width,canvas.height);pen.lineWidth=2;
  for(const z of zones){pen.strokeStyle='#f4d196';pen.fillStyle='#f4d19620';pen.beginPath();if(isPencil()){pen.moveTo((z.x-z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);pen.lineTo((z.x+z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);}else{pen.ellipse(z.x*canvas.width,z.y*canvas.height,z.width*canvas.width*detector.radiusScale/2,z.height*canvas.height*detector.radiusScale/2,0,0,Math.PI*2);pen.fill();}pen.stroke();}
- for(const p of points){pen.fillStyle=p.color||(p.id==='cyan'?'#6affff':'#ff8bd9');pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,p.radius||8,0,Math.PI*2);pen.fill();}
+ for(const p of points){pen.fillStyle=p.color||(p.id==='cyan'?'#6affff':'#ff8bd9');pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,isPencil()?+$('hitRadius').value:(p.radius||8),0,Math.PI*2);pen.fill();}
 }
 async function loadHands(){if(landmarker)return;status('Loading hand model… Internet is needed for the first load.');
  const {FilesetResolver,HandLandmarker}=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/vision_bundle.mjs');
@@ -70,7 +83,7 @@ function scheduleFrame(){const v=$('video');raf=v.requestVideoFrameCallback?v.re
 function frame(now){if(!running)return;const v=$('video');
  try{if(!v.srcObject||v.readyState<2){stop();status('Camera is off. Enable the camera, then start tracking again.');return;}
  if(v.currentTime!==lastFrame){lastFrame=v.currentTime;let points,displayed,selection;const inferenceStart=performance.now();
- if(isPencil()){points=pencils.detect(v);displayed=points;guidePoints=points;}
+ if(isPencil()){points=pencils.detect(v);displayed=selecting?pencils.candidates:points;guidePoints=points;const r=$('zones').getBoundingClientRect();points=points.map(p=>({...p,rx:+$('hitRadius').value/r.width,ry:+$('hitRadius').value/r.height}));}
  else{
   selection=handInput.update(landmarker.detectForVideo(v,now),now);
   if(selection.timedOut){stop();studio.stopCamera();status('No hands seen for 10 seconds. Enable the camera and start tracking again.');return;}
@@ -79,7 +92,7 @@ function frame(now){if(!running)return;const v=$('video');
  const inferenceMs=performance.now()-inferenceStart;
  const zones=isPencil()?studio.getPadLayout():studio.getLayout();
  const activeDetector=isPencil()?pencilDetector:detector;
- if(studio.getMode()==='play'){for(const h of activeDetector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else activeDetector.reset();
+ if(studio.getMode()==='play'&&!selecting){for(const h of activeDetector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else activeDetector.reset();
  render(displayed,zones);
  if(selection)window.dispatchEvent(new CustomEvent('hands-detected',{detail:selection}));
  statsFrames++;statsInference+=inferenceMs;
@@ -88,12 +101,12 @@ function frame(now){if(!running)return;const v=$('video');
   $('speedStatus').textContent=`${fps} tracking frames/sec · ${Math.round(statsInference/statsFrames)} ms processing`+(fps<25?' · Try brighter lighting or colored stick tips.':'');
   statsSince=now;statsFrames=0;statsInference=0;
  }
- status(selection?selection.message:points.length?`${points.length} tracked · ${studio.getMode()==='play'?'strike downward through a gold line':'switch to Play when positioned'}`:$('inputMode').value==='yellow'?'No yellow pencils found · use bright light and a plain background':'No neon tips found · keep pink and cyan tips visible');
+ status(selection?selection.message:points.length?`${points.length} tracked · ${studio.getMode()==='play'?'strike downward through a gold line':'switch to Play when positioned'}`:$('inputMode').value==='yellow'?'No locked yellow pencils · choose Select / reset tips':'No locked tips · choose Select / reset tips');
  }scheduleFrame();
  }catch(e){stop();status('Tracking stopped: '+e.message);}
 }
 function stop(){
- running=false;guidePoints=[];
+ running=false;guidePoints=[];selectMode(false);
  const v=$('video');if(v.cancelVideoFrameCallback)v.cancelVideoFrameCallback(raf);else cancelAnimationFrame(raf);
  detector.reset();pencilDetector.reset();pencils.reset();lastFrame=-1;handInput.reset(performance.now());
  if(socket){socket.onclose=null;socket.close();socket=null;}
@@ -118,6 +131,7 @@ function updateInputHelp(){
  $('backendSettings').hidden=$('inputMode').value!=='backend';
  $('handRadiusControl').hidden=$('inputMode').value!=='hands';
  $('pencilSensitivityControl').hidden=!pencil;
+ $('markerSettings').hidden=!pencil;
  $('setupHands').hidden=$('inputMode').value!=='hands';
  $('inputHelp').textContent=$('inputMode').value==='hands'?'Show both open hands briefly to select them. Strike downward from above the drumhead with three fingertip dots together or one palm dot. Lift clear before touching again. Each hand has a 0.1-second repeat guard per drum.':pencil?($('inputMode').value==='yellow'?'Use two classic yellow pencils, bright lighting and a plain background.':'Wrap one pencil tip in pink tape and the other in cyan. Use bright lighting and a plain background.')+' Strike down through a gold line; bounce or lift to rearm.':'Your backend supplies drum hits. Camera frames stay on this device.';
  if(studio.getMode()==='play')$('stageHint').textContent=pencil?'Strike downward through a gold line':'Strike downward: three fingertip dots or one palm dot';
