@@ -10,10 +10,26 @@
 
   const userId = getUserId();
   let currentExercise = null;
+  let lastCoachContext = null;
 
   const banner = document.getElementById('coachBanner');
   const feedbackEl = document.getElementById('feedback');
   const bpmInput = document.getElementById('bpm');
+
+  const chatMessages = document.getElementById('chatMessages');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+  const chatStatus = document.getElementById('chatStatus');
+  const history = [];
+
+  function appendMessage(role, text) {
+    if (!chatMessages) return;
+    const el = document.createElement('div');
+    el.className = 'chat-msg ' + role;
+    el.textContent = text;
+    chatMessages.appendChild(el);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
 
   function renderBanner(data, feedbackText) {
     if (!banner) return;
@@ -29,6 +45,7 @@
       if (!res.ok) return;
       const data = await res.json();
       currentExercise = data.exercise;
+      lastCoachContext = { weakestSkill: data.weakestSkill, skillAverages: data.skillAverages };
       renderBanner(data, feedbackText);
       if (bpmInput && currentExercise.tempoBpm) {
         bpmInput.value = currentExercise.tempoBpm;
@@ -52,6 +69,7 @@
         })
       });
       const data = await res.json();
+      appendMessage('assistant', data.feedback);
       await loadNextExercise(data.feedback);
     } catch (err) {
       console.error('Could not submit attempt', err);
@@ -77,21 +95,7 @@
 
   loadNextExercise();
 
-  const chatMessages = document.getElementById('chatMessages');
-  const chatForm = document.getElementById('chatForm');
-  const chatInput = document.getElementById('chatInput');
-  const chatStatus = document.getElementById('chatStatus');
-  const history = [];
-
-  function appendMessage(role, text) {
-    const el = document.createElement('div');
-    el.className = 'chat-msg ' + role;
-    el.textContent = text;
-    chatMessages.appendChild(el);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
-
-  appendMessage('assistant', "Hi! I'm your drum coach. Ask me how to hold a steady beat, which drum to hit first, or how to warm up.");
+  appendMessage('assistant', "Hi! I'm your drum coach. Ask me how to hold a steady beat, which drum to hit first, or how to warm up — and I'll chime in on my own after each practice round.");
 
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
@@ -108,7 +112,7 @@
         const res = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: history })
+          body: JSON.stringify({ messages: history, context: lastCoachContext })
         });
         const data = await res.json();
         appendMessage('assistant', data.reply);

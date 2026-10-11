@@ -195,11 +195,11 @@ async function start() {
   });
 
   app.post('/chat', async (req, res) => {
-    const { messages } = req.body;
+    const { messages, context } = req.body;
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'messages array is required' });
     }
-    const reply = await generateChatReply(messages);
+    const reply = await generateChatReply(messages, context);
     res.json({ reply });
   });
 

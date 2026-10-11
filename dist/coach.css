@@ -32,3 +32,13 @@
 .chat-status{font-size:10px;color:#8c9a90;margin-top:8px;min-height:1.4em}
 
 @media(max-width:1100px){.workspace{grid-template-columns:1fr}.chat-panel{min-height:300px}}
+
+html,body{height:100%}
+main{max-width:100%;box-sizing:border-box;padding:32px clamp(16px,3vw,56px) 40px}
+.workspace{grid-template-columns:minmax(0,1fr) 360px}
+.stage{aspect-ratio:16/9}
+@media(min-width:1400px){.stage{aspect-ratio:21/9}}
+h1{font-size:clamp(34px,4.2vw,58px)}
+.chat-panel{min-height:620px}
+.chat-messages{max-height:none}
+
