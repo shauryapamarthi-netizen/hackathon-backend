@@ -127,3 +127,21 @@ h1{color:#efeff1}
 .test-pads button{background:#1f1f23;border-color:#2d2d35;color:#efeff1}
 .reset{border-color:#2d2d35;color:#adadb8}
 
+/* Sweep remaining orange/gold accents (mostly from jazz.css) to purple/neutral */
+:root{color:#efeff1}
+.logo{color:#9147ff}
+.text-button{color:#bf94ff}
+.home-link{color:#bf94ff}
+.step-label{color:#bf94ff}
+.version b{color:#bf94ff}
+.performance h3{color:#bf94ff}
+#trackingStatus{color:#bf94ff}
+.preset-apply{background:#9147ff;color:#fff}
+.preset-apply:hover{background:#772ce8}
+.visual-controls input{accent-color:#9147ff}
+.performance input,.performance select{accent-color:#9147ff}
+.panel-top,.camera-bottom{color:#adadb8}
+.aside-copy,.help,.intro p{color:#adadb8}
+footer{color:#848494}
+.stage-caption span:first-child{color:#bf94ff}
+
