@@ -7,7 +7,7 @@ visualControls.innerHTML=`<div class="kit-heading"><h3>CAMERA OVERLAY</h3><span>
 <label class="visual-switch"><input id="showDrums" type="checkbox" checked> Show 3D drums</label>
 <label for="drumSize">Drum size <output id="sizeValue">110 px</output></label><input id="drumSize" type="range" min="70" max="170" value="110">
 <label for="drumAngle">Viewing angle <output id="angleValue">45°</output></label><input id="drumAngle" type="range" min="0" max="65" value="45">
-<p>Point your camera at your desk or floor. Drag the drums into place, then adjust the angle. 0° gives a straight-down view. Positions stay fixed on screen when the camera moves.</p>`;
+<p>Point your camera at your desk or floor. Drag the drums into place, then adjust the angle. 0° gives a straight-down view. Drums near the bottom-center appear larger; higher or side drums appear smaller. Positions stay fixed on screen when the camera moves.</p>`;
 document.querySelector('.kit-heading').before(visualControls);
 function buildDrum(d){
  const cymbal=['hi-hat','crash','ride'].includes(d.id);

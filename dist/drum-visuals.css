@@ -13,3 +13,6 @@
 .cymbal-model .drum-head{border-width:1px;box-shadow:inset 0 0 9px #fff2;transform:translateZ(0)}
 .hihat-shaft{position:absolute;left:calc(50% - 2px);bottom:50%;width:4px;height:48%;min-height:30px;background:linear-gradient(90deg,#646f79,#fff 48%,#9ba7b3);border-radius:2px;box-shadow:1px 0 2px #0008;z-index:4}.hihat-shaft:after{content:'';position:absolute;bottom:-3px;left:-4px;width:12px;height:7px;border-radius:3px;background:linear-gradient(#dce1e5,#697580)}
 .show-3d #hi-hat>small,.show-3d #hi-hat>span:not(.drum-model){top:15px}
+
+.zone{width:min(calc(90px * var(--depth-scale,1)),calc(20% * var(--depth-scale,1)))}
+.show-3d .visual-zone{width:min(calc(var(--drum-size,110px) * var(--piece-scale,1) * var(--depth-scale,1)),calc(23% * var(--piece-scale,1) * var(--depth-scale,1)))}

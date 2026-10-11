@@ -21,11 +21,12 @@ selected hands. Use Set up hands again to deliberately select new hands.
 
 Each hand shows palm center, pinky tip, middle-finger tip, pointer fingertip,
 and thumb tip. One matching point inside the frame can preserve selection.
-Any of these five points can play a drum by entering its glowing circular
-or elliptical hit area. Contacts from multiple points of one hand are
+At least three distinct points from the same hand must touch the glowing
+circular or elliptical drum area at the same time to play it. Contacts from multiple points of one hand are
 combined into one sound per drum. Move all points clear of that area before
 touching it again. Fast segments that cross the entire area between frames
-are detected too. A new or reacquired point already inside an area does not
+count only if three contact intervals overlap in time. One or two points,
+or points combined from different hands, do not trigger a hand strike. A new or reacquired point already inside an area does not
 produce a phantom strike; move out and back in to play it.
 
 The Hit area slider sets the visible and detected radius together, from
@@ -50,12 +51,29 @@ The browser emits `hands-detected` events with selected hands, timestamps,
 state, overlayPoints and strikePoints. Stop events clear the selected hands.
 No additional server endpoint or npm dependency is required.
 
+## Camera guide and perspective
+
+Enable the camera to activate the Camera guide in the sidebar. Twice per
+second it samples a small local preview to assess brightness and a possible
+coherent room edge. It suggests lighting changes and leveling when that edge
+looks tilted. Once hand tracking runs, it also suggests tilting up/down or
+moving the camera farther away when hand points approach the image edges.
+These are framing heuristics, not room recognition, floor-plane mapping, or
+an estimate of physical camera pitch. No image is uploaded.
+
+Drums use a bounded perspective scale based on screen position: lower and
+central drums look nearer and larger, while higher or side drums shrink.
+The existing relative sizes of the instruments remain applied. Dragging,
+resizing, and preset changes update their measured bounds, so hit areas stay
+aligned with the resized drums. This creates visual depth, not reconstructed
+room geometry.
+
 ## First successful hit
 
 1. Click **Enable sound**. Test each of the instrument buttons. A/S/D/F and Space also play hi-hat/snare/tom/crash/kick when focus is not in a form control or button.
 2. Enable the camera. Leave **Hands** selected and click **Start tracking**. The MediaPipe model downloads on first use; allow a little time. A clear failure message leaves manual drum buttons available if download or initialization fails.
 3. In Arrange mode, drag the drums to comfortable positions. Keep the fingertip cursors visible, with room above every drum.
-4. Select **Play**. Move any of the five tracked points into a glowing drum area from any direction. Move clear before touching it again. Holding points inside does not repeatedly trigger it.
+4. Select **Play**. Move at least three tracked points from the same hand into a glowing drum area together, from any direction. Move clear before touching it again. Holding points inside does not repeatedly trigger it.
 5. Increase **Hit area** if the targets feel too small. Use speakers or wired headphones when assessing latency.
 
 For sticks/pencils: select **Sticks · pink + cyan tips**. Wrap one tip in bright magenta/pink tape and the other in cyan tape (one unique color per stick). Use good lighting and a plain background without either color. The marker should appear at least five pixels wide in the small detection image. This mode detects colored blobs; it does not recognize arbitrary unmarked pencils. Position the camera so strokes visibly travel down the image. Pink and cyan cursors mark detected tips.
@@ -100,7 +118,7 @@ The client does not upload video to this endpoint, nor automatically synchronize
 npm test
 ```
 
-Automated detector checks cover contact from any direction, one-point contact, deduplication, boundary jitter, simultaneous hands, out-of-zone motion, reacquisition, radius scaling, and fast crossings. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
+Automated detector checks cover contact from any direction, simultaneous three-point contact, deduplication, boundary jitter, simultaneous hands, out-of-zone motion, reacquisition, radius scaling, and fast crossings. Audio checks cover generated buffers and independent overlapping voices. JavaScript syntax and static serving are checked.
 
 A headless Chromium smoke check verified that the studio loads its five-point tracking controls and overlay. Model execution, real camera tracking, audible output and end-to-end latency have **not** been verified here. No latency number or competition outcome is guaranteed. Before presenting, run the steps above on the actual laptop, test both hands and colored tips, and adjust placement/sensitivity. A real-camera test remains essential.
 
