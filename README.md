@@ -1,6 +1,6 @@
 # Air Drum
 
-A browser drum studio with selected-hand tracking, pencil tracking, drumhead hit areas, and an adaptive practice coach.
+A browser drum studio with selected-hand tracking, drumhead hit areas, and an adaptive practice coach.
 
 ## Run locally
 
@@ -23,15 +23,6 @@ Each hand shows the palm center, pointer, middle, pinky, and thumb tips. A resti
 
 The camera guide uses local lighting and edge heuristics for framing suggestions. It does not reconstruct the room or upload video. MediaPipe downloads its model on first use and still computes all 21 landmarks; the application uses five points per hand. Session selection is geometric continuity, not biometric identity.
 
-## Pencils
-
-1. Choose **Pencils: pink + cyan tips** or **Pencils: yellow wood (#2)**. Use bright lighting and a plain background. Pink/cyan tape is recommended.
-2. Enable the camera and start tracking. Dots follow the detected pencil tips.
-3. Arrange drums so the gold strike lines lie where the tips land, then choose **Play** and strike downward. Bounce or lift to rearm.
-4. **Pencil sensitivity** controls the minimum downward speed. Hand mode has a separate drumhead radius control.
-
-Pencil color detection and line collision retain the team's current pencil implementation. Yellow pencils remain a color/shape heuristic, not general object recognition. Switching inputs stops and resets the previous tracker.
-
 ## Practice and coaching
 
 Enable sound to use the drum buttons or keys A / S / D / F / Space. The browser generates snare, tom, hi-hat, crash, and kick samples once and allows overlapping voices. The metronome, practice recorder, timing summary, and downloadable JSON hit log work locally.
@@ -40,14 +31,14 @@ The backend chooses the next exercise from the user's weakest skill and records 
 
 ## Integration
 
-`window.airDrumStudio.getLayout()` returns the rendered drumhead centers and dimensions in normalized, mirrored camera coordinates. Hand hit radii are `width * radiusScale / 2` and `height * radiusScale / 2`. `getPadLayout()` supplies the pencil detector's pad geometry; `getMode()` returns arrange/play; `stopCamera()` releases capture.
+`window.airDrumStudio.getLayout()` returns the rendered drumhead centers and dimensions in normalized, mirrored camera coordinates. Hand hit radii are `width * radiusScale / 2` and `height * radiusScale / 2`. `getMode()` returns arrange/play; `stopCamera()` releases capture.
 
-`hand-input.js` connects the selected `HandSession` to named strike points and the overlay. `strike-detector.js` handles the palm/three-fingertip rule. `pencil-tracker.js` and `pencil-strike-detector.js` provide the separate pencil pipeline. The `hands-detected` event carries selected hands, preview hands, overlay points, strike points, and a timestamp; stop events clear the selection.
+`hand-input.js` connects the selected `HandSession` to named strike points and the overlay. `strike-detector.js` handles the palm/three-fingertip rule. The `hands-detected` event carries selected hands, preview hands, overlay points, strike points, and a timestamp; stop events clear the selection.
 
 External integrations can call `window.airDrumStudio.hit('snare', 0.85)` or dispatch a `drum-hit` event with `{drum, velocity}`. Supported drum names are `snare`, `hi-hat`, `mid-tom`, `crash`, and `kick`; aliases such as `hihat` and `bass` are accepted. The call returns false outside Play, before sound is ready, or for invalid input. Backend input also accepts existing WebSocket `drum_hit` messages. Camera video is not sent to these endpoints.
 
 ## Verification and limits
 
-`npm test` covers hand selection, timeouts, projected geometry, top-only strikes, the three-fingertip or palm rule, shared cooldowns, short dropouts, pencil strikes, and overlapping audio voices. Synthetic tests cover 20 three-fingertip strokes spaced 120 ms apart.
+`npm test` covers hand selection, timeouts, projected geometry, top-only strikes, the three-fingertip or palm rule, shared cooldowns, short dropouts and overlapping audio voices. Synthetic tests cover 20 three-fingertip strokes spaced 120 ms apart.
 
-The live readout reports processed tracking frames per second and average input processing time, not end-to-end audio latency. Sound is scheduled before drawing the overlay. Browser integration checks use simulated hand and pencil observations; real-camera motion blur, inference performance, audible output, and latency must still be checked on the demo laptop.
+The live readout reports processed tracking frames per second and average input processing time, not end-to-end audio latency. Sound is scheduled before drawing the overlay. Browser integration checks use simulated hand observations; real-camera motion blur, inference performance, audible output, and latency must still be checked on the demo laptop.

@@ -3,22 +3,20 @@ import { HandInput } from './hand-input.js';
 const $=id=>document.getElementById(id), studio=window.airDrumStudio, audio=window.drumAudio;
 const handInput=new HandInput(new HandSession(),getHandPoints);
 const detector=new window.StrikeDetector();
-const pencils=new window.PencilTracker(),pencilDetector=new window.PencilStrikeDetector();
-const isPencil=()=>['neon','yellow'].includes($('inputMode').value);let running=false,landmarker,loading=false,raf=0,lastFrame=-1,socket=null,session=[],sessionStart=0,recording=false,metro=null,nextBeat=0,beat=0,tempo=90;
+let running=false,landmarker,loading=false,raf=0,lastFrame=-1,socket=null,session=[],sessionStart=0,recording=false,metro=null,nextBeat=0,beat=0,tempo=90;
 const panel=document.createElement('section');panel.className='performance';panel.innerHTML=`
-<h3>PLAY YOUR SPACE</h3><div class="camera-coach"><strong>CAMERA GUIDE</strong><p id="cameraAdvice" role="status">Enable the camera for live framing guidance.</p><small>Uses lighting, room edges and hand positions. No room reconstruction or video upload.</small></div><button id="soundOn" class="primary">Enable sound</button>
-<label>Input<select id="inputMode"><option value="hands">Hands · five-point tracking</option><option value="neon">Pencils · pink + cyan tips</option><option value="yellow">Pencils · yellow wood (#2)</option><option value="backend">Backend · hit events</option></select></label>
+<h3>HAND TRACKING</h3><p>Enable your camera, start hand tracking, then switch to Play.</p><div class="camera-coach"><strong>CAMERA GUIDE</strong><p id="cameraAdvice" role="status">Enable the camera for live framing guidance.</p><small>Uses lighting, room edges and hand positions. No room reconstruction or video upload.</small></div><button id="soundOn" class="primary">Enable sound</button>
+<label>Input<select id="inputMode"><option value="hands">Hands · five-point tracking</option><option value="backend">Backend · hit events</option></select></label>
 <p id="inputHelp">Show both open hands briefly to select them. Strike downward from above the drumhead with three fingertip dots together or one palm dot. Lift the striking dots clear before touching again. Each hand has a 0.1-second repeat guard per drum.</p>
-<button id="trackToggle" class="reset">Start tracking</button><button id="setupHands" class="reset" disabled>Set up hands again</button><div id="trackingStatus" role="status">Sound and tracking are off.</div>
+<button id="trackToggle" class="reset">Start hand tracking</button><button id="setupHands" class="reset" disabled>Set up hands again</button><div id="trackingStatus" role="status">Sound and tracking are off.</div>
 <label id="handRadiusControl">Hit area <output id="radiusValue">100%</output><input id="sensitivity" type="range" min="80" max="125" value="100"></label>
-<label id="pencilSensitivityControl" hidden>Pencil sensitivity <input id="pencilSensitivity" type="range" min="10" max="100" value="72"></label>
 <label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
 <div id="backendSettings" hidden><label>WebSocket URL<input id="wsUrl" placeholder="wss://your-server/ws"></label><p>Connects to an existing backend that sends drum_hit events. No camera frames are uploaded by this client.</p></div>
 <div class="test-pads"><button data-hit="hi-hat">A · Hi-hat</button><button data-hit="snare">S · Snare</button><button data-hit="mid-tom">D · Tom</button><button data-hit="crash">F · Crash</button><button data-hit="kick">Space · Kick</button></div>
 <p id="speedStatus">Tracking speed appears when you start playing.</p><div class="readouts"><span id="hitCount">0 hits</span><span id="lastHit">Ready</span></div>
 <label>Practice tempo <input id="bpm" type="number" min="40" max="220" value="90"></label><button id="metro" class="reset">Start metronome</button>
 <button id="record" class="reset">Record practice</button><button id="download" class="reset" disabled>Export hit log</button><p id="feedback" role="status">Practice one hit per click. Your timing summary appears after recording.</p>`;
-document.querySelector('aside').append(panel);
+document.querySelector('aside').prepend(panel);
 document.querySelector('.backend').textContent='Local sound engine · no API key';
 const canvas=document.createElement('canvas');canvas.className='tracking-overlay';$('zones').append(canvas);const pen=canvas.getContext('2d');
 let hits=0;
@@ -50,14 +48,13 @@ function hit(id,velocity=1,source='manual'){
 }
 async function enableSound(){await audio.init();audio.volume(+$('volume').value/100);$('soundOn').textContent='Sound enabled ✓';}
 $('soundOn').onclick=()=>enableSound().catch(e=>status('Audio could not start: '+e.message));
-$('pencilSensitivity').oninput=()=>{pencilDetector.threshold=(115-+$('pencilSensitivity').value)/100;};$('pencilSensitivity').oninput();
 $('volume').oninput=()=>audio.volume(+$('volume').value/100);
 $('sensitivity').oninput=()=>{detector.radiusScale=+$('sensitivity').value/100;$('radiusValue').value=$('sensitivity').value+'%';detector.reset();};$('sensitivity').oninput();
 for(const b of panel.querySelectorAll('[data-hit]'))b.onclick=async()=>{try{await enableSound();hit(b.dataset.hit)}catch(e){status(e.message)}};
 for(const z of document.querySelectorAll('.zone'))z.addEventListener('click',async()=>{if(studio.getMode()==='play'){try{await enableSound();hit(z.id)}catch(e){status(e.message)}}});
 window.addEventListener('keydown',async e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;const id={KeyA:'hi-hat',KeyS:'snare',KeyD:'mid-tom',KeyF:'crash',Space:'kick'}[e.code];if(id){e.preventDefault();try{await enableSound();hit(id)}catch(err){status(err.message)}}});
 function render(points,zones){const r=$('zones').getBoundingClientRect();if(canvas.width!==Math.round(r.width)||canvas.height!==Math.round(r.height)){canvas.width=Math.round(r.width);canvas.height=Math.round(r.height);}pen.clearRect(0,0,canvas.width,canvas.height);pen.lineWidth=2;
- for(const z of zones){pen.strokeStyle='#f4d196';pen.fillStyle='#f4d19620';pen.beginPath();if(isPencil()){pen.moveTo((z.x-z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);pen.lineTo((z.x+z.width*.5)*canvas.width,(z.y-z.height*.15)*canvas.height);}else{pen.ellipse(z.x*canvas.width,z.y*canvas.height,z.width*canvas.width*detector.radiusScale/2,z.height*canvas.height*detector.radiusScale/2,0,0,Math.PI*2);pen.fill();}pen.stroke();}
+ for(const z of zones){pen.strokeStyle='#f4d196';pen.fillStyle='#f4d19620';pen.beginPath();pen.ellipse(z.x*canvas.width,z.y*canvas.height,z.width*canvas.width*detector.radiusScale/2,z.height*canvas.height*detector.radiusScale/2,0,0,Math.PI*2);pen.fill();pen.stroke();}
  for(const p of points){pen.fillStyle=p.color||(p.id==='cyan'?'#6affff':'#ff8bd9');pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,p.radius||8,0,Math.PI*2);pen.fill();}
 }
 async function loadHands(){if(landmarker)return;status('Loading hand model… Internet is needed for the first load.');
@@ -70,35 +67,31 @@ function scheduleFrame(){const v=$('video');raf=v.requestVideoFrameCallback?v.re
 function frame(now){if(!running)return;const v=$('video');
  try{if(!v.srcObject||v.readyState<2){stop();status('Camera is off. Enable the camera, then start tracking again.');return;}
  if(v.currentTime!==lastFrame){lastFrame=v.currentTime;let points,displayed,selection;const inferenceStart=performance.now();
- if(isPencil()){points=pencils.detect(v);displayed=points;guidePoints=points;}
- else{
-  selection=handInput.update(landmarker.detectForVideo(v,now),now);
-  if(selection.timedOut){stop();studio.stopCamera();status('No hands seen for 10 seconds. Enable the camera and start tracking again.');return;}
-  points=selection.strikePoints;displayed=selection.overlayPoints;guidePoints=displayed;
- }
+ selection=handInput.update(landmarker.detectForVideo(v,now),now);
+ if(selection.timedOut){stop();studio.stopCamera();status('No hands seen for 10 seconds. Enable the camera and start tracking again.');return;}
+ points=selection.strikePoints;displayed=selection.overlayPoints;guidePoints=displayed;
  const inferenceMs=performance.now()-inferenceStart;
- const zones=isPencil()?studio.getPadLayout():studio.getLayout();
- const activeDetector=isPencil()?pencilDetector:detector;
- if(studio.getMode()==='play'){for(const h of activeDetector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else activeDetector.reset();
+ const zones=studio.getLayout();
+ if(studio.getMode()==='play'){for(const h of detector.update(points,zones,now))hit(h.drum,h.velocity,h.source)}else detector.reset();
  render(displayed,zones);
  if(selection)window.dispatchEvent(new CustomEvent('hands-detected',{detail:selection}));
  statsFrames++;statsInference+=inferenceMs;
  if(now-statsSince>=1000){
   const fps=Math.round(statsFrames*1000/(now-statsSince));
-  $('speedStatus').textContent=`${fps} tracking frames/sec · ${Math.round(statsInference/statsFrames)} ms processing`+(fps<25?' · Try brighter lighting or colored stick tips.':'');
+  $('speedStatus').textContent=`${fps} tracking frames/sec · ${Math.round(statsInference/statsFrames)} ms processing`+(fps<25?' · Try brighter lighting and keep both hands in view.':'');
   statsSince=now;statsFrames=0;statsInference=0;
  }
- status(selection?selection.message:points.length?`${points.length} tracked · ${studio.getMode()==='play'?'strike downward through a gold line':'switch to Play when positioned'}`:$('inputMode').value==='yellow'?'No yellow pencils found · use bright light and a plain background':'No neon tips found · keep pink and cyan tips visible');
+ status(selection.message);
  }scheduleFrame();
  }catch(e){stop();status('Tracking stopped: '+e.message);}
 }
 function stop(){
  running=false;guidePoints=[];
  const v=$('video');if(v.cancelVideoFrameCallback)v.cancelVideoFrameCallback(raf);else cancelAnimationFrame(raf);
- detector.reset();pencilDetector.reset();pencils.reset();lastFrame=-1;handInput.reset(performance.now());
+ detector.reset();lastFrame=-1;handInput.reset(performance.now());
  if(socket){socket.onclose=null;socket.close();socket=null;}
  landmarker?.close();landmarker=null;
- $('trackToggle').textContent='Start tracking';$('setupHands').disabled=true;
+ $('trackToggle').textContent=$('inputMode').value==='hands'?'Start hand tracking':'Connect backend';$('setupHands').disabled=true;
  pen.clearRect(0,0,canvas.width,canvas.height);
  window.dispatchEvent(new CustomEvent('hands-detected',{detail:{hands:[],previewHands:[],state:'stopped',timestampMs:performance.now()}}));
 }
@@ -112,18 +105,16 @@ function backend(){const url=new URL($('wsUrl').value);if(!['ws:','wss:'].includ
  ws.onerror=()=>status('Backend connection failed. Check the URL and server.');ws.onclose=()=>{if(socket===ws){stop();status('Backend disconnected. Start tracking to reconnect.')}};
 }
 $('trackToggle').onclick=async()=>{if(running){stop();status('Tracking stopped.');return}if(loading)return;loading=true;$('trackToggle').disabled=true;$('inputMode').disabled=true;
- try{await enableSound();if($('inputMode').value==='backend'){backend();running=true;}else{if(!$('video').srcObject)throw Error('Enable the camera first.');if($('inputMode').value==='hands')await loadHands();else pencils.setMode($('inputMode').value);handInput.reset(performance.now());running=true;statsSince=performance.now();statsFrames=0;statsInference=0;scheduleFrame();$('setupHands').disabled=$('inputMode').value!=='hands';}$('trackToggle').textContent='Stop tracking';}catch(e){stop();status(e.message+' You can still test the drum buttons.');}finally{loading=false;$('trackToggle').disabled=false;$('inputMode').disabled=false;}};
+ try{await enableSound();if($('inputMode').value==='backend'){backend();running=true;}else{if(!$('video').srcObject)throw Error('Enable the camera first.');await loadHands();handInput.reset(performance.now());running=true;statsSince=performance.now();statsFrames=0;statsInference=0;scheduleFrame();$('setupHands').disabled=false;}$('trackToggle').textContent='Stop tracking';}catch(e){stop();status(e.message+' You can still test the drum buttons.');}finally{loading=false;$('trackToggle').disabled=false;$('inputMode').disabled=false;}};
 function updateInputHelp(){
- const pencil=isPencil();
  $('backendSettings').hidden=$('inputMode').value!=='backend';
  $('handRadiusControl').hidden=$('inputMode').value!=='hands';
- $('pencilSensitivityControl').hidden=!pencil;
  $('setupHands').hidden=$('inputMode').value!=='hands';
- $('inputHelp').textContent=$('inputMode').value==='hands'?'Show both open hands briefly to select them. Strike downward from above the drumhead with three fingertip dots together or one palm dot. Lift clear before touching again. Each hand has a 0.1-second repeat guard per drum.':pencil?($('inputMode').value==='yellow'?'Use two classic yellow pencils, bright lighting and a plain background.':'Wrap one pencil tip in pink tape and the other in cyan. Use bright lighting and a plain background.')+' Strike down through a gold line; bounce or lift to rearm.':'Your backend supplies drum hits. Camera frames stay on this device.';
- if(studio.getMode()==='play')$('stageHint').textContent=pencil?'Strike downward through a gold line':'Strike downward: three fingertip dots or one palm dot';
+ $('inputHelp').textContent=$('inputMode').value==='hands'?'Show both open hands briefly to select them. Strike downward from above the drumhead with three fingertip dots together or one palm dot. Lift clear before touching again. Each hand has a 0.1-second repeat guard per drum.':'Your backend supplies drum hits. Camera frames stay on this device.';
+ if(studio.getMode()==='play')$('stageHint').textContent='Strike downward: three fingertip dots or one palm dot';
 }
 $('inputMode').onchange=()=>{stop();updateInputHelp();status('Input changed. Press Start tracking.');};
-$('arrange').addEventListener('click',()=>{detector.reset();pencilDetector.reset();});
+$('arrange').addEventListener('click',()=>{detector.reset();});
 $('play').addEventListener('click',updateInputHelp);
 updateInputHelp();
 window.airDrumStudio.hit=(name,velocity=1)=>{
