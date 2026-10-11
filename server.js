@@ -8,7 +8,7 @@ const connectDB = require('./config/db');
 const Exercise = require('./models/Exercise');
 const Attempt = require('./models/Attempt');
 const SkillHistory = require('./models/SkillHistory');
-const { pickNextExercise } = require('./lib/adaptive');
+const { pickNextExercise, getSkillLevel } = require('./lib/adaptive');
 const { generateFeedback, generateChatReply } = require('./lib/claude');
 
 function clampScore(value) {
@@ -133,12 +133,12 @@ async function start() {
       return res.status(400).json({ error: 'userId query param is required' });
     }
 
-    const { exercise, weakestSkill, skillAverages } = await pickNextExercise(userId);
+    const { exercise, weakestSkill, skillAverages, level } = await pickNextExercise(userId);
     if (!exercise) {
       return res.status(404).json({ error: `No exercises found for skill ${weakestSkill}` });
     }
 
-    res.json({ exercise, weakestSkill, skillAverages });
+    res.json({ exercise, weakestSkill, skillAverages, level });
   });
 
   app.post('/attempts', async (req, res) => {
@@ -165,6 +165,8 @@ async function start() {
       .sort({ recordedAt: -1 });
     const improvement = lastSkillEntry ? overallScore - lastSkillEntry.score : 0;
 
+    const levelBefore = await getSkillLevel(userId, exercise.targetSkill);
+
     const attempt = await Attempt.create({
       userId,
       exerciseId,
@@ -175,6 +177,8 @@ async function start() {
     });
 
     await SkillHistory.create({ userId, skill: exercise.targetSkill, score: overallScore });
+
+    const levelAfter = await getSkillLevel(userId, exercise.targetSkill);
 
     exercise.stats.timesPlayed += 1;
     exercise.stats.totalImprovement += improvement;
@@ -189,7 +193,12 @@ async function start() {
       improvement
     });
 
-    res.status(201).json({ attempt, feedback });
+    res.status(201).json({
+      attempt,
+      feedback,
+      level: levelAfter,
+      leveledUp: levelAfter.level > levelBefore.level
+    });
   });
 
   app.get('/attempts', async (req, res) => {
