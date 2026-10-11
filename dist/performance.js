@@ -44,6 +44,7 @@ panel.innerHTML = `
 <p id="inputHelp">Wrap one tip in bright pink / magenta tape and the other in cyan. Good light, plain background. Tip dots should follow the pencil ends.</p>
 <button id="trackToggle" class="reset">Start pencil tracking</button>
 <div id="trackingStatus" role="status">Sound and pencil tracking are off.</div>
+<div id="markerSettings"><button id="selectTips" class="reset">Select / reset tips</button><p>Click each pink or cyan taped tip in the camera image. Click Done selecting before playing. If a tip is lost, select it again.</p></div><label>Hitbox radius <input id="hitRadius" type="range" min="3" max="40" value="12"><output id="radiusValue">12 px</output></label>
 <label>Sensitivity <input id="sensitivity" type="range" min="10" max="100" value="72"></label>
 <label>Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
 <div id="backendSettings" hidden>
@@ -70,6 +71,14 @@ const canvas = document.createElement('canvas');
 canvas.className = 'tracking-overlay';
 $('zones').append(canvas);
 const pen = canvas.getContext('2d');
+let selecting=false, woodSlot=0;
+const markerLock=pencils.lock;
+function selectMode(on){selecting=on;canvas.style.pointerEvents=on?'auto':'none';canvas.style.cursor=on?'crosshair':'';$('selectTips').textContent=on?'Done selecting':'Select / reset tips';detector.reset();}
+$('selectTips').onclick=()=>{if(!running){status('Start tracking first.');return;}if(!selecting){markerLock.reset();woodSlot=0;}selectMode(!selecting);};
+$('hitRadius').oninput=()=>{$('radiusValue').textContent=$('hitRadius').value+' px';detector.reset();};
+canvas.onpointerdown=e=>{if(!selecting)return;e.preventDefault();e.stopPropagation();const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;const near=pencils.candidates.map(p=>({...p,d:Math.hypot((p.x-x)*r.width,(p.y-y)*r.height)})).filter(p=>p.d<24).sort((a,b)=>a.d-b.d);if(near.length){const p=near[0];for(const [id,prev] of markerLock.tracks)if(Math.hypot(prev.x-p.x,prev.y-p.y)<.04)markerLock.tracks.delete(id);markerLock.select(p.id==='wood'?(woodSlot++%2?'right':'left'):p.id,p,performance.now());status('Tip selected. Select the other tip or click Done selecting.');}};
+
+
 
 function status(s) {
   $('trackingStatus').textContent = s;
@@ -174,7 +183,7 @@ function render(points, zones) {
   for (const p of points) {
     pen.fillStyle = tipColor[p.id] || '#fff';
     pen.beginPath();
-    pen.arc(p.x * canvas.width, p.y * canvas.height, 7, 0, Math.PI * 2);
+    pen.arc(p.x * canvas.width, p.y * canvas.height, +$('hitRadius').value, 0, Math.PI * 2);
     pen.fill();
     pen.strokeStyle = 'rgba(0,0,0,.35)';
     pen.stroke();
@@ -192,10 +201,11 @@ function frame(now) {
     }
     if (v.currentTime !== lastFrame) {
       lastFrame = v.currentTime;
-      const points = pencils.detect(v);
+      let points = pencils.detect(v);
       const zones = studio.getLayout();
-      render(points, zones);
-      if (studio.getMode() === 'play') {
+      render(selecting ? pencils.candidates : points, zones);
+      points=points.map(p=>({...p,rx:+$('hitRadius').value/canvas.width,ry:+$('hitRadius').value/canvas.height}));
+      if (studio.getMode() === 'play' && !selecting) {
         for (const h of detector.update(points, zones, now)) hit(h.drum, h.velocity, h.source);
       } else {
         detector.reset();
@@ -208,8 +218,8 @@ function frame(now) {
                 : 'switch to Play when positioned'
             }`
           : $('inputMode').value === 'yellow'
-            ? 'No yellow pencils found · use classic yellow #2s, bright light, plain background'
-            : 'No neon tips found · pink + cyan tape must be visible and at least ~5px wide'
+            ? 'No locked pencils · use Select / reset tips'
+            : 'No locked tips · use Select / reset tips'
       );
     }
     raf = requestAnimationFrame(frame);
@@ -221,6 +231,7 @@ function frame(now) {
 
 function stop() {
   running = false;
+  selectMode(false);
   cancelAnimationFrame(raf);
   detector.reset();
   pencils.reset();
@@ -337,6 +348,7 @@ $('inputMode').onchange = () => {
   stop();
   const mode = $('inputMode').value;
   $('backendSettings').hidden = mode !== 'backend';
+  $('markerSettings').hidden = mode === 'backend';
   $('inputHelp').textContent = helpFor(mode);
   status('Input changed. Press Start pencil tracking.');
 };
