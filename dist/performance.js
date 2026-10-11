@@ -54,7 +54,7 @@ for(const b of panel.querySelectorAll('[data-hit]'))b.onclick=async()=>{try{awai
 for(const z of document.querySelectorAll('.zone'))z.addEventListener('click',async()=>{if(studio.getMode()==='play'){try{await enableSound();hit(z.id)}catch(e){status(e.message)}}});
 window.addEventListener('keydown',async e=>{if(e.repeat||/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;const id={KeyA:'hi-hat',KeyS:'snare',KeyD:'mid-tom',KeyF:'crash',Space:'kick'}[e.code];if(id){e.preventDefault();try{await enableSound();hit(id)}catch(err){status(err.message)}}});
 function render(points,zones){const r=$('zones').getBoundingClientRect();if(canvas.width!==Math.round(r.width)||canvas.height!==Math.round(r.height)){canvas.width=Math.round(r.width);canvas.height=Math.round(r.height);}pen.clearRect(0,0,canvas.width,canvas.height);pen.lineWidth=2;
- for(const z of zones){pen.strokeStyle='#f4d196';pen.fillStyle='#f4d19620';pen.beginPath();pen.ellipse(z.x*canvas.width,z.y*canvas.height,z.width*canvas.width*detector.radiusScale/2,z.height*canvas.height*detector.radiusScale/2,0,0,Math.PI*2);pen.fill();pen.stroke();}
+ for(const z of zones){pen.strokeStyle='#225ce0';pen.fillStyle='#225ce020';pen.beginPath();pen.ellipse(z.x*canvas.width,z.y*canvas.height,z.width*canvas.width*detector.radiusScale/2,z.height*canvas.height*detector.radiusScale/2,0,0,Math.PI*2);pen.fill();pen.stroke();}
  for(const p of points){pen.fillStyle=p.color||(p.id==='cyan'?'#6affff':'#ff8bd9');pen.beginPath();pen.arc(p.x*canvas.width,p.y*canvas.height,p.radius||8,0,Math.PI*2);pen.fill();}
 }
 async function loadHands(){if(landmarker)return;status('Loading hand model… Internet is needed for the first load.');

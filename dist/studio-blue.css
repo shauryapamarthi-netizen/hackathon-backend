@@ -1,0 +1,46 @@
+/* Shared blue-and-white palette for tracking, practice, and coach controls. */
+:root{background:#f5f8fd;color:#183454;color-scheme:light}
+.studio-refresh h1,.studio-refresh h2,.studio-refresh h3{color:#183454}
+.studio-refresh .version,.studio-refresh .edition{color:#526782}
+.studio-refresh .version b{color:#2059d3}
+.studio-refresh .empty p,.studio-refresh .empty small,.studio-refresh .camera-icon{color:#526782}
+.studio-refresh .performance,.studio-refresh .chat-panel,.studio-refresh .getting-started,.studio-refresh .coach-banner,.studio-refresh .insights-panel,.studio-refresh .visual-controls,.studio-refresh .note,.studio-refresh .camera-coach{background:#fff;border-color:#cddbef;box-shadow:none;color:#183454}
+.studio-refresh .visual-controls,.studio-refresh .note,.studio-refresh .camera-coach,.studio-refresh .getting-started{background:#edf3fc}
+.studio-refresh .performance h3,.studio-refresh .getting-started h3,.studio-refresh .insights-panel h3,.studio-refresh .coach-banner strong,.studio-refresh .camera-coach strong{color:#2059d3}
+.studio-refresh .performance label,.studio-refresh .visual-controls label{color:#183454}
+.studio-refresh .performance p,.studio-refresh .camera-coach p,.studio-refresh .camera-coach small,.studio-refresh .readouts,.studio-refresh .insights-top,.studio-refresh .skill-label,.studio-refresh .skill-value,.studio-refresh .chat-status,.studio-refresh .coach-banner .coach-feedback{color:#526782}
+.studio-refresh .coach-banner,.studio-refresh .insights-panel{border-left-color:#225ce0}
+.studio-refresh .coach-banner .coach-feedback{border-top-color:#cddbef}
+.studio-refresh .performance input,.studio-refresh .performance select{accent-color:#225ce0}
+.studio-refresh .performance select,.studio-refresh .performance input[type=number],.studio-refresh .performance input:not([type]),.studio-refresh .visual-controls select,.studio-refresh .chat-form input{background:#fff;color:#183454;border-color:#b8cbe7}
+.studio-refresh #trackingStatus{color:#2059d3}
+.studio-refresh .test-pads button,.studio-refresh #fullscreenBtn{background:#edf3fc;color:#2059d3;border-color:#b8cbe7}
+.studio-refresh .test-pads button:hover,.studio-refresh #fullscreenBtn:hover,.studio-refresh .reset:hover{background:#dce9ff;border-color:#225ce0}
+.studio-refresh .primary,.studio-refresh .preset-apply,.studio-refresh .chat-form button{background:#225ce0;color:#fff}
+.studio-refresh .primary:hover,.studio-refresh .preset-apply:hover,.studio-refresh .chat-form button:hover{background:#1548bc;box-shadow:0 4px 14px #225ce026}
+.studio-refresh .chat-msg.assistant{background:#edf3fc;border-color:#cddbef;color:#183454}
+.studio-refresh .chat-msg.user{background:#225ce0;border-color:#225ce0;color:#fff}
+.studio-refresh .chat-msg.assistant:before{color:#2059d3}
+.studio-refresh .chat-msg.user:before{color:#dce9ff}
+.studio-refresh .chat-messages{scrollbar-color:#b8cbe7 transparent}
+.studio-refresh .chat-form input::placeholder{color:#526782}
+.studio-refresh .step,.studio-refresh .step.active{color:#183454}
+.studio-refresh .step-num{background:#dce9ff;color:#2059d3}
+.studio-refresh .step.active .step-num{background:#225ce0;color:#fff;box-shadow:0 0 0 3px #225ce026}
+.studio-refresh .step.done{color:#226746}
+.studio-refresh .step.done .step-num{background:#d9efe4;color:#226746}
+.studio-refresh .skill-track,.studio-refresh .meter-track{background:#dce9ff}
+.studio-refresh .skill-fill,.studio-refresh .meter-fill{background:#225ce0}
+.studio-refresh .meter-fill.good{background:#278259}
+.studio-refresh .meter-fill.bad{background:#c54532}
+.studio-refresh .calibration-overlay{background:#f5f8fdf2}
+.studio-refresh .calibration-box h3{color:#183454}
+.studio-refresh .calibration-box p,.studio-refresh .calibration-meter span{color:#526782}
+.studio-refresh .zone:hover,.studio-refresh .zone:focus-visible{box-shadow:0 0 0 2px #225ce099}
+.studio-refresh .kit small{color:#526782}
+.studio-refresh button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.studio-refresh :is(button,a,input,select,summary):focus-visible{outline:3px solid #225ce0;outline-offset:3px}
+html:fullscreen,html:-webkit-full-screen{background:#f5f8fd}
+@keyframes hit-glow{0%{filter:brightness(1.7);box-shadow:0 0 35px #5b9eff}100%{filter:brightness(1)}}
+@media(max-width:1100px){.studio-refresh .workspace{grid-template-columns:1fr}.studio-refresh .chat-panel{min-height:300px}}
+@media(max-width:850px){.studio-refresh aside{display:block}.studio-refresh .chat-form input{min-width:0}.studio-refresh header{height:auto;min-height:72px;gap:12px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}}
