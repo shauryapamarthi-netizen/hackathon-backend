@@ -10,22 +10,16 @@
       this.canvas.height = H;
       this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
       this.prev = new Map();
-      this.lock = new root.MarkerLock();
-      this.candidates = [];
       this.mode = 'neon'; // neon | yellow
     }
 
     setMode(mode) {
       this.mode = mode === 'yellow' ? 'yellow' : 'neon';
       this.prev.clear();
-      this.lock.reset();
-      this.candidates = [];
     }
 
     reset() {
       this.prev.clear();
-      this.lock.reset();
-      this.candidates = [];
     }
 
     /** @returns {{id:string,x:number,y:number,confidence:number}[]} */
@@ -35,8 +29,7 @@
       cx.drawImage(video, 0, 0, W, H);
       const { data } = cx.getImageData(0, 0, W, H);
       const raw = this.mode === 'yellow' ? this.#yellowTips(data) : this.#neonTips(data);
-      this.candidates = raw;
-      return this.lock.update(raw, performance.now());
+      return this.#stabilize(raw);
     }
 
     #neonTips(data) {
@@ -51,7 +44,8 @@
           const hit = name === 'pink' ? this.#isPink(r, g, b) : this.#isCyan(r, g, b);
           mask[i] = hit ? 1 : 0;
         }
-        for (const tip of this.#blobs(mask, 8, 1800)) out.push({ id: name, n: tip.n, x: 1 - tip.cx / W, y: tip.cy / H, confidence: 1 });
+        const tip = this.#bestTipBlob(mask, 8, 4200);
+        if (tip) out.push({ id: name, x: 1 - tip.x / W, y: tip.y / H, confidence: tip.confidence });
       }
       return out;
     }
@@ -62,11 +56,11 @@
         const o = i * 4;
         wood[i] = this.#isYellowWood(data[o], data[o + 1], data[o + 2]) ? 1 : 0;
       }
-      const shafts = this.#blobs(wood, 40, 9000);
+      const shafts = this.#blobs(wood, 40, 9000).sort((a, b) => b.n - a.n).slice(0, 2);
       const tips = [];
       for (let i = 0; i < shafts.length; i++) {
         const tip = this.#shaftTip(shafts[i], data);
-        if (tip) tips.push({ id: 'wood', n: shafts[i].n, x: 1 - tip.x / W, y: tip.y / H, confidence: tip.confidence });
+        if (tip) tips.push({ id: i === 0 ? 'left' : 'right', x: 1 - tip.x / W, y: tip.y / H, confidence: tip.confidence });
       }
       return tips;
     }
@@ -142,8 +136,8 @@
         const width = maxX - minX + 1;
         const height = maxY - minY + 1;
         // Prefer stick-like shapes over floor blobs / clothing patches.
-        const elongated = Math.max(height / width, width / height) >= 2.5;
-        if (this.mode === 'yellow' && !elongated) continue;
+        const elongated = height / Math.max(1, width) >= 0.55 || width / Math.max(1, height) >= 1.4 || n < 220;
+        if (!elongated && n > 900) continue;
         out.push({ n, cx: sx / n, cy: sy / n, tipX, tipY, minX, maxX, minY, maxY, pixels: q });
       }
       return out;
